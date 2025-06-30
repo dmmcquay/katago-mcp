@@ -59,10 +59,17 @@ This project implements an MCP (Model Context Protocol) server for KataGo, follo
 ## MCP Tools
 
 The server implements these KataGo analysis tools:
-- `analyzePosition` - Analyze a specific board position
-- `findMistakes` - Identify mistakes in a game
-- `evaluateTerritory` - Estimate territory control
-- `explainMove` - Get explanations for move choices
+
+### Core Analysis
+- `analyzePosition` - Analyze a specific board position with win rates, score estimates, and best moves
+- `getEngineStatus` - Check if the KataGo engine is running
+- `startEngine` - Start the KataGo engine manually
+- `stopEngine` - Stop the KataGo engine
+
+### Advanced Analysis
+- `findMistakes` - Analyze a complete game to identify mistakes, blunders, and inaccuracies
+- `evaluateTerritory` - Estimate territory ownership and calculate the final score
+- `explainMove` - Get detailed explanations for why a specific move is good or bad
 
 ## Development Guidelines
 

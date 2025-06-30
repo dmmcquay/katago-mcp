@@ -4,10 +4,25 @@ An MCP (Model Context Protocol) server that provides KataGo analysis capabilitie
 
 ## Features
 
-- **analyzePosition** - Analyze a specific board position from SGF
-- **findMistakes** - Identify mistakes in a game with configurable thresholds
-- **evaluateTerritory** - Estimate territory control and ownership
-- **explainMove** - Get explanations for move choices and alternatives
+### Core Capabilities
+- MCP server implementation for KataGo integration
+- Automatic KataGo binary and model detection
+- Configuration via environment variables or JSON
+- Structured logging to stderr
+- Graceful shutdown handling
+
+### MCP Tools
+
+#### Core Analysis
+- **analyzePosition** - Analyze a specific board position with win rates, score estimates, and best moves
+- **getEngineStatus** - Check if the KataGo engine is running
+- **startEngine** - Start the KataGo engine manually
+- **stopEngine** - Stop the KataGo engine
+
+#### Advanced Analysis
+- **findMistakes** - Analyze a complete game to identify mistakes, blunders, and inaccuracies with customizable thresholds
+- **evaluateTerritory** - Estimate territory ownership and calculate the final score with visual board representation
+- **explainMove** - Get detailed explanations for why a specific move is good or bad, including strategic analysis
 
 ## Installation
 
