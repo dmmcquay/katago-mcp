@@ -204,15 +204,25 @@ func isGroupDead(group []string, color string, territoryMap *TerritoryMap, thres
 	}
 
 	// A group is dead if it's entirely surrounded by strong opponent territory
+	// For black stones: dead if in strong white territory (ownership < -threshold)
+	// For white stones: dead if in strong black territory (ownership > threshold)
 
 	for _, coord := range group {
-		x, y := parseCoord(coord, len(territoryMap.Territory))
-		if x >= 0 && y >= 0 {
+		x, y := parseCoord(coord, len(territoryMap.Ownership))
+		if x >= 0 && y >= 0 && y < len(territoryMap.Ownership) && x < len(territoryMap.Ownership[y]) {
 			ownership := territoryMap.Ownership[y][x]
-			if color == "B" && ownership > -threshold {
-				return false // Not in strong white territory
-			} else if color == "W" && ownership < threshold {
-				return false // Not in strong black territory
+			if color == "B" {
+				// Black stone is alive if ownership is positive (black territory)
+				// Dead if ownership < -threshold (strong white territory)
+				if ownership > -threshold {
+					return false // Not dead - either in black territory or contested
+				}
+			} else if color == "W" {
+				// White stone is alive if ownership is negative (white territory)
+				// Dead if ownership > threshold (strong black territory)
+				if ownership < threshold {
+					return false // Not dead - either in white territory or contested
+				}
 			}
 		}
 	}

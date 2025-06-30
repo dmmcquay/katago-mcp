@@ -103,7 +103,7 @@ func (e *Engine) ExplainMove(ctx context.Context, position *Position, move strin
 	explanation.Strategic = analyzeStrategicAspects(move, position, result)
 
 	// Generate pros and cons
-	explanation.Pros, explanation.Cons = generateProsAndCons(moveInfo, bestMove, result, position)
+	explanation.Pros, explanation.Cons = generateProsAndCons(moveInfo, bestMove, position)
 
 	// Add alternatives
 	for i, altMove := range topMoves {
@@ -187,7 +187,10 @@ func analyzeStrategicAspects(move string, position *Position, _ *AnalysisResult)
 
 // getBoardRegion determines which region of the board a move is in.
 func getBoardRegion(x, y, boardSize int) string {
-	edge := 3 // Consider 3 lines from edge as corner/side
+	edge := 4 // Consider 4 lines from edge as corner/side for 19x19
+	if boardSize <= 9 {
+		edge = 3 // Smaller edge for smaller boards
+	}
 
 	// Corners
 	if (x < edge || x >= boardSize-edge) && (y < edge || y >= boardSize-edge) {
@@ -210,9 +213,9 @@ func isNearStones(_, _ int, position *Position) bool {
 }
 
 // generateProsAndCons creates lists of advantages and disadvantages.
-func generateProsAndCons(moveInfo, bestMove *MoveInfo, result *AnalysisResult, position *Position) ([]string, []string) {
-	pros := []string{}
-	cons := []string{}
+func generateProsAndCons(moveInfo, bestMove *MoveInfo, position *Position) (pros, cons []string) {
+	pros = []string{}
+	cons = []string{}
 
 	// Compare to best move
 	winrateDiff := bestMove.Winrate - moveInfo.Winrate
@@ -245,6 +248,8 @@ func generateProsAndCons(moveInfo, bestMove *MoveInfo, result *AnalysisResult, p
 
 	// Cons
 	if winrateDiff > 0.05 {
+		cons = append(cons, fmt.Sprintf("Loses %.1f%% win rate", winrateDiff*100))
+	} else if winrateDiff > 0.01 {
 		cons = append(cons, fmt.Sprintf("Loses %.1f%% win rate", winrateDiff*100))
 	}
 

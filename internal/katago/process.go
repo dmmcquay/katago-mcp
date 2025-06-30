@@ -141,10 +141,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	go e.readStderr()
 
 	// Send initial configuration
-	if err := e.configure(); err != nil {
-		_ = e.Stop()
-		return fmt.Errorf("failed to configure engine: %w", err)
-	}
+	e.configure()
 
 	// Start health check routine
 	go e.healthCheckRoutine()
@@ -213,13 +210,11 @@ func (e *Engine) IsRunning() bool {
 }
 
 // configure sends initial configuration commands to KataGo.
-func (e *Engine) configure() error {
+func (e *Engine) configure() {
 	// The analysis engine doesn't need initial configuration
 	// Configuration is passed via command line args and config file
 	// Wait a bit for KataGo to fully start up before sending queries
 	time.Sleep(500 * time.Millisecond)
-	
-	return nil
 }
 
 // readStdout reads responses from KataGo.

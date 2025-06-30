@@ -120,7 +120,7 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Check for error in response
 	if resp.Error != nil {
 		switch v := resp.Error.(type) {

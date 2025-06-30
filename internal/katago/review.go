@@ -246,13 +246,13 @@ func estimateLevel(summary ReviewSummary) string {
 	switch {
 	case avgAccuracy > 95 && blunderRate < 0.01:
 		return "Professional"
-	case avgAccuracy > 90 && blunderRate < 0.02:
+	case avgAccuracy > 90 && blunderRate < 0.025:
 		return "Strong Amateur (5d+)"
-	case avgAccuracy > 85 && blunderRate < 0.03:
+	case avgAccuracy > 85 && blunderRate < 0.045:
 		return "Amateur Dan (1d-4d)"
-	case avgAccuracy > 80 && blunderRate < 0.05:
+	case avgAccuracy > 80 && blunderRate < 0.075:
 		return "Strong Kyu (5k-1k)"
-	case avgAccuracy > 70 && blunderRate < 0.08:
+	case avgAccuracy > 70 && blunderRate < 0.12:
 		return "Mid Kyu (10k-6k)"
 	case avgAccuracy > 60:
 		return "Weak Kyu (15k-11k)"
