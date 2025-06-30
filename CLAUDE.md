@@ -82,6 +82,8 @@ The server implements these KataGo analysis tools:
 
 8. **Planning and Phases**: When creating implementation plans or project phases, do not include time measurements (like "Week 1", "2 weeks", etc.). Focus on the logical progression of phases and let the user determine timelines.
 
+9. **Pre-Push Validation**: Always run the PR checks that will happen in CI locally (linter, tests, e2e, security) before pushing a commit/PR. Use `make ci` or individual commands (`make lint`, `make test`, `make build`) to validate your changes locally first. This prevents CI failures and ensures code quality.
+
 ## KataGo Setup
 
 KataGo must be installed and configured:
