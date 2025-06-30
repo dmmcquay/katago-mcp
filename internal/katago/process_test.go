@@ -61,6 +61,11 @@ func TestEngineAnalysis(t *testing.T) {
 		t.Skip("KataGo not installed, skipping engine tests")
 	}
 
+	// Skip if no model or config found
+	if detection.ModelPath == "" || detection.ConfigPath == "" {
+		t.Skip("KataGo model or config not found, skipping analysis tests")
+	}
+
 	cfg := &config.KataGoConfig{
 		BinaryPath: detection.BinaryPath,
 		ModelPath:  detection.ModelPath,
