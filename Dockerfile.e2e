@@ -1,0 +1,67 @@
+# Dockerfile for e2e testing with KataGo pre-installed
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    ca-certificates \
+    libzip-dev \
+    libboost-filesystem-dev \
+    libgoogle-perftools-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go
+ENV GO_VERSION=1.21.10
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
+    && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
+    && rm go${GO_VERSION}.linux-amd64.tar.gz
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Install KataGo
+RUN wget -q https://github.com/lightvector/KataGo/releases/download/v1.15.3/katago-v1.15.3-linux-x64.tar.gz \
+    && tar -xzf katago-v1.15.3-linux-x64.tar.gz \
+    && mv katago /usr/local/bin/ \
+    && chmod +x /usr/local/bin/katago \
+    && rm katago-v1.15.3-linux-x64.tar.gz
+
+# Create directory for KataGo files
+RUN mkdir -p /katago
+
+# Download a small neural network model (15 block network, ~30MB)
+RUN wget -O /katago/model.bin.gz \
+    https://katagoarchive.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz
+
+# Create a minimal KataGo config for testing
+RUN cat > /katago/config.cfg << 'EOF'
+# Minimal KataGo config for e2e testing
+numSearchThreads = 1
+maxVisits = 100
+maxTime = 2.0
+maxPlayouts = 200
+nnCacheSizePowerOfTwo = 16
+nnMutexPoolSizePowerOfTwo = 10
+numVirtualLossesPerThread = 1
+searchFactorAfterOnePass = 0.50
+searchFactorAfterTwoPass = 0.25
+EOF
+
+# Set up test environment variables
+ENV KATAGO_TEST_MODEL=/katago/model.bin.gz
+ENV KATAGO_TEST_CONFIG=/katago/config.cfg
+
+# Verify KataGo installation
+RUN katago version
+
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application
+COPY . .
+
+# Run e2e tests
+CMD ["go", "test", "-v", "-tags=e2e", "./e2e", "-timeout", "300s"]
