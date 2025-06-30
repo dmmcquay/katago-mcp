@@ -90,14 +90,12 @@ go test -race ./...
 
 All changes must be submitted via pull requests and require:
 - All CI checks to pass
-- Code owner approval (@dmmcquay)
 - No merge conflicts with main branch
 
 ### Branch Protection
 
 The `main` branch is protected with the following rules:
-- Require pull request reviews from CODEOWNERS
-- Dismiss stale pull request approvals when new commits are pushed
+- Require a pull request before merging
 - Require status checks to pass before merging
 - Require branches to be up to date before merging
 - Include administrators in these restrictions
