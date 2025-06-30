@@ -1,3 +1,4 @@
+//go:build e2e
 // +build e2e
 
 package e2e
@@ -46,7 +47,7 @@ func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 			}
 		}
 	}
-	
+
 	if configPath == "" {
 		// Try common KaTrain config locations
 		home := os.Getenv("HOME")
@@ -142,8 +143,8 @@ func TestAnalyzePositionE2E(t *testing.T) {
 			wantMove: "D16", // Common corner approach
 		},
 		{
-			name: "empty board",
-			sgf: `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5])`,
+			name:     "empty board",
+			sgf:      `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5])`,
 			wantMove: "", // Any corner move is fine
 		},
 		{
@@ -211,12 +212,12 @@ func TestAnalyzePositionE2E(t *testing.T) {
 // TestMCPServerE2E tests the full MCP server integration
 func TestMCPServerE2E(t *testing.T) {
 	env := SetupTestEnvironment(t)
-	
+
 	// Create config
 	cfg := &config.Config{
 		Server: config.ServerConfig{
-			Name:        "test-katago-mcp",
-			Version:     "test",
+			Name:    "test-katago-mcp",
+			Version: "test",
 		},
 		KataGo: config.KataGoConfig{
 			BinaryPath: env.BinaryPath,
@@ -255,11 +256,11 @@ func TestMCPServerE2E(t *testing.T) {
 	t.Run("analyzePosition via MCP", func(t *testing.T) {
 		// Load test SGF
 		sgf := LoadTestSGF(t, "simple_opening.sgf")
-		
+
 		args := map[string]interface{}{
-			"sgf": sgf,
+			"sgf":       sgf,
 			"maxVisits": 50,
-			"verbose": true,
+			"verbose":   true,
 		}
 
 		// Call the handler directly since we can't access internal handlers
@@ -269,7 +270,7 @@ func TestMCPServerE2E(t *testing.T) {
 				Arguments: args,
 			},
 		}
-		
+
 		result, err := toolsHandler.HandleAnalyzePosition(ctx, request)
 		if err != nil {
 			t.Fatalf("Tool call failed: %v", err)
@@ -296,9 +297,9 @@ func TestMCPServerE2E(t *testing.T) {
 	t.Run("findMistakes via MCP", func(t *testing.T) {
 		// Load game with mistakes
 		sgf := LoadTestSGF(t, "game_with_mistakes.sgf")
-		
+
 		args := map[string]interface{}{
-			"sgf": sgf,
+			"sgf":       sgf,
 			"maxVisits": 50,
 		}
 
@@ -308,7 +309,7 @@ func TestMCPServerE2E(t *testing.T) {
 				Arguments: args,
 			},
 		}
-		
+
 		result, err := toolsHandler.HandleFindMistakes(ctx, request)
 		if err != nil {
 			t.Fatalf("Tool call failed: %v", err)
@@ -335,9 +336,9 @@ func TestMCPServerE2E(t *testing.T) {
 	t.Run("evaluateTerritory via MCP", func(t *testing.T) {
 		// Load endgame position
 		sgf := LoadTestSGF(t, "9x9_endgame.sgf")
-		
+
 		args := map[string]interface{}{
-			"sgf": sgf,
+			"sgf":       sgf,
 			"threshold": 0.85,
 		}
 
@@ -347,7 +348,7 @@ func TestMCPServerE2E(t *testing.T) {
 				Arguments: args,
 			},
 		}
-		
+
 		result, err := toolsHandler.HandleEvaluateTerritory(ctx, request)
 		if err != nil {
 			t.Fatalf("Tool call failed: %v", err)
@@ -381,7 +382,7 @@ func TestMCPServerE2E(t *testing.T) {
 				Arguments: nil,
 			},
 		}
-		
+
 		result, err := toolsHandler.HandleGetEngineStatus(ctx, request)
 		if err != nil {
 			t.Fatalf("Tool call failed: %v", err)
