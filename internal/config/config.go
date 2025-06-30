@@ -117,7 +117,7 @@ func (c *Config) applyEnvOverrides() {
 
 	// Rate limit settings
 	if v := os.Getenv("KATAGO_MCP_RATE_LIMIT_ENABLED"); v != "" {
-		c.RateLimit.Enabled = strings.ToLower(v) == "true"
+		c.RateLimit.Enabled = strings.EqualFold(v, "true")
 	}
 }
 

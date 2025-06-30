@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	// Version information injected at build time
+	// Version information injected at build time.
 	GitCommit string = "unknown"
 	BuildTime string = "unknown"
 )
@@ -135,19 +135,19 @@ func main() {
 		mcp.WithDescription("Check server and KataGo health status"),
 	)
 	mcpServer.AddTool(healthTool, func(checkCtx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		status := fmt.Sprintf("KataGo MCP Server Health Status\n")
-		status += fmt.Sprintf("==============================\n")
+		status := "KataGo MCP Server Health Status\n"
+		status += "==============================\n"
 		status += fmt.Sprintf("Server Version: %s\n", cfg.Server.Version)
 		status += fmt.Sprintf("Git Commit: %s\n", GitCommit)
 		status += fmt.Sprintf("Build Time: %s\n", BuildTime)
-		status += fmt.Sprintf("\nKataGo Status:\n")
+		status += "\nKataGo Status:\n"
 		status += fmt.Sprintf("  Binary: %s\n", cfg.KataGo.BinaryPath)
 		if detection.Version != "" {
 			status += fmt.Sprintf("  Version: %s\n", detection.Version)
 		}
 		status += fmt.Sprintf("  Model: %s\n", cfg.KataGo.ModelPath)
 		status += fmt.Sprintf("  Config: %s\n", cfg.KataGo.ConfigPath)
-		status += fmt.Sprintf("\nEngine Status: ")
+		status += "\nEngine Status: "
 		if engine.IsRunning() {
 			status += "running\n"
 		} else {

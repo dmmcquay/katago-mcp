@@ -30,7 +30,7 @@ func DetectKataGo() (*DetectedSetup, error) {
 		setup.BinaryPath = binaryPath
 
 		// Get version if binary found
-		if version, err := getKataGoVersion(binaryPath); err == nil {
+		if version, vErr := getKataGoVersion(binaryPath); vErr == nil {
 			setup.Version = version
 		}
 	}
@@ -105,7 +105,7 @@ func findKataGoBinary() (string, error) {
 				return path, nil
 			}
 			// On Unix, check execute permission
-			if runtime.GOOS != "windows" && info.Mode()&0111 != 0 {
+			if runtime.GOOS != "windows" && info.Mode()&0o111 != 0 {
 				return path, nil
 			}
 		}
