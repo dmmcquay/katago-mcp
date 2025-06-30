@@ -1,0 +1,30 @@
+{
+  "katago": {
+    "binaryPath": "katago",
+    "modelPath": "",
+    "configPath": "",
+    "numThreads": 4,
+    "maxVisits": 1000,
+    "maxTime": 10.0
+  },
+  "server": {
+    "name": "katago-mcp",
+    "version": "0.1.0",
+    "description": "KataGo analysis server for MCP"
+  },
+  "logging": {
+    "level": "info",
+    "prefix": "[katago-mcp] "
+  },
+  "rateLimit": {
+    "enabled": true,
+    "requestsPerMin": 60,
+    "burstSize": 10,
+    "perToolLimits": {
+      "analyzePosition": 30,
+      "findMistakes": 10,
+      "evaluateTerritory": 20,
+      "explainMove": 20
+    }
+  }
+}
