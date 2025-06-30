@@ -38,19 +38,23 @@ type Response struct {
 	TurnNumber int                    `json:"turnNumber"`
 	MoveInfos  []MoveInfo             `json:"moveInfos"`
 	RootInfo   RootInfo               `json:"rootInfo"`
-	Error      *ErrorResponse         `json:"error,omitempty"`
+	Error      interface{}            `json:"error,omitempty"` // Can be string or ErrorResponse
 	Raw        map[string]interface{} `json:"-"`
 }
 
 // MoveInfo contains analysis for a single move.
 type MoveInfo struct {
-	Move      string   `json:"move"`
-	Visits    int      `json:"visits"`
-	Winrate   float64  `json:"winrate"`
-	ScoreLead float64  `json:"scoreLead"`
-	ScoreMean float64  `json:"scoreMean"`
-	PV        []string `json:"pv"`
-	Order     int      `json:"order"`
+	Move       string   `json:"move"`
+	Visits     int      `json:"visits"`
+	Winrate    float64  `json:"winrate"`
+	ScoreLead  float64  `json:"scoreLead"`
+	ScoreMean  float64  `json:"scoreMean"`
+	ScoreStdev float64  `json:"scoreStdev,omitempty"`
+	Prior      float64  `json:"prior"` // Neural network's initial probability
+	Utility    float64  `json:"utility,omitempty"`
+	LCB        float64  `json:"lcb,omitempty"`
+	PV         []string `json:"pv"`
+	Order      int      `json:"order"`
 }
 
 // RootInfo contains information about the root position.
@@ -90,7 +94,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	}
 
 	// Build command arguments
-	args := []string{"gtp"}
+	args := []string{"analysis"}
 	if e.config.ConfigPath != "" {
 		args = append(args, "-config", e.config.ConfigPath)
 	}
@@ -190,11 +194,8 @@ func (e *Engine) Stop() error {
 	// Cancel all pending queries
 	for id, ch := range e.pending {
 		ch <- &Response{
-			ID: id,
-			Error: &ErrorResponse{
-				Message: "engine stopped",
-				Code:    "ENGINE_STOPPED",
-			},
+			ID:    id,
+			Error: "engine stopped",
 		}
 		close(ch)
 	}
@@ -213,28 +214,11 @@ func (e *Engine) IsRunning() bool {
 
 // configure sends initial configuration commands to KataGo.
 func (e *Engine) configure() error {
-	// Configure analysis engine
-	config := map[string]interface{}{
-		"id":     "configure",
-		"action": "setAnalysisEngineOptions",
-		"analysisEngineOptions": map[string]interface{}{
-			"numThreads":         e.config.NumThreads,
-			"maxVisits":          e.config.MaxVisits,
-			"maxTime":            e.config.MaxTime,
-			"reportDuringSearch": false,
-			"allowResignation":   false,
-		},
-	}
-
-	data, err := json.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if _, err := fmt.Fprintf(e.stdin, "%s\n", data); err != nil {
-		return fmt.Errorf("failed to write config: %w", err)
-	}
-
+	// The analysis engine doesn't need initial configuration
+	// Configuration is passed via command line args and config file
+	// Wait a bit for KataGo to fully start up before sending queries
+	time.Sleep(500 * time.Millisecond)
+	
 	return nil
 }
 
@@ -263,6 +247,7 @@ func (e *Engine) readStdout() {
 				e.logger.Warn("Failed to parse response", "line", line, "error", err)
 				continue
 			}
+			e.logger.Debug("Received response", "id", response.ID, "hasError", response.Error != nil)
 
 			// Also unmarshal into raw map for debugging
 			_ = json.Unmarshal([]byte(line), &response.Raw)
@@ -276,12 +261,20 @@ func (e *Engine) readStdout() {
 				continue
 			}
 
+			// Skip startup responses that we're not waiting for
+			if response.ID == "startup" {
+				e.logger.Debug("Received startup response, ignoring")
+				continue
+			}
+
 			// Send to waiting channel
 			e.mu.Lock()
 			if ch, ok := e.pending[response.ID]; ok {
 				ch <- &response
 				close(ch)
 				delete(e.pending, response.ID)
+			} else {
+				e.logger.Warn("Received response for unknown query", "id", response.ID)
 			}
 			e.mu.Unlock()
 		}
@@ -369,19 +362,31 @@ func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
 		e.mu.Unlock()
 		return nil, fmt.Errorf("failed to send query: %w", err)
 	}
+	e.logger.Debug("Sent query", "id", id, "query", string(data))
 	e.mu.Unlock()
 
 	// Wait for response with timeout
 	select {
 	case resp := <-respCh:
 		if resp.Error != nil {
-			return nil, fmt.Errorf("KataGo error: %s", resp.Error.Message)
+			switch v := resp.Error.(type) {
+			case string:
+				return nil, fmt.Errorf("KataGo error: %s", v)
+			case map[string]interface{}:
+				if msg, ok := v["message"].(string); ok {
+					return nil, fmt.Errorf("KataGo error: %s", msg)
+				}
+			case *ErrorResponse:
+				return nil, fmt.Errorf("KataGo error: %s", v.Message)
+			}
+			return nil, fmt.Errorf("KataGo error: %v", resp.Error)
 		}
 		return resp, nil
 	case <-time.After(time.Duration(e.config.MaxTime*2) * time.Second):
 		e.mu.Lock()
 		delete(e.pending, id)
 		e.mu.Unlock()
-		return nil, fmt.Errorf("query timeout")
+		e.logger.Error("Query timeout", "id", id, "timeout", e.config.MaxTime*2)
+		return nil, fmt.Errorf("query timeout after %.1f seconds", e.config.MaxTime*2)
 	}
 }

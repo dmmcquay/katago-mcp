@@ -1,0 +1,7 @@
+(;GM[1]FF[4]CA[UTF-8]AP[katago-mcp-test:1.0]SZ[19]KM[6.5]DT[2025-01-30]
+PB[Amateur Player]PW[Test Player]RE[W+15.5]
+;B[pd];W[dp];B[pp];W[dd];B[fc];W[cf];B[jd];W[qj]
+;B[tt]C[Black passes - this is a mistake!];W[qm];B[tt]C[Another pass - big mistake]
+;W[nq];B[pq];W[np];B[po];W[jp];B[fq]C[Overplay];W[eq];B[fp];W[er]
+;B[gr];W[tt]C[White passes when ahead];B[cn];W[co];B[dn];W[bo]
+;B[bn];W[ao];B[an];W[bq];B[fr];W[es];B[fs];W[ds];B[tt];W[tt])

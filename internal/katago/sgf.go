@@ -33,15 +33,17 @@ type Move struct {
 
 // SGFParser parses SGF files.
 type SGFParser struct {
-	content string
-	index   int
+	content   string
+	index     int
+	boardSize int // Track board size for coordinate conversion
 }
 
 // NewSGFParser creates a new SGF parser.
 func NewSGFParser(content string) *SGFParser {
 	return &SGFParser{
-		content: strings.TrimSpace(content),
-		index:   0,
+		content:   strings.TrimSpace(content),
+		index:     0,
+		boardSize: 19, // Default board size
 	}
 }
 
@@ -157,6 +159,7 @@ func (p *SGFParser) parseNode(position *Position) error {
 				if err == nil {
 					position.BoardXSize = size
 					position.BoardYSize = size
+					p.boardSize = size // Update parser's board size
 				}
 			}
 
@@ -279,8 +282,8 @@ func (p *SGFParser) sgfToKataGo(coord string) string {
 		col = string('A' + x + 1) // Skip 'I'
 	}
 
-	// KataGo counts from bottom (assuming 19x19 for now, will be fixed when we know board size)
-	row := fmt.Sprintf("%d", 19-int(y))
+	// KataGo counts from bottom, using the actual board size
+	row := fmt.Sprintf("%d", p.boardSize-int(y))
 
 	return col + row
 }

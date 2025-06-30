@@ -1,0 +1,4 @@
+(;GM[1]FF[4]CA[UTF-8]AP[katago-mcp-test:1.0]SZ[19]KM[6.5]DT[2025-01-30]
+PB[Black Player]PW[White Player]RE[W+R]
+;B[pd];W[dp];B[pp];W[dd];B[fc];W[cf];B[jd];W[qj]
+C[A simple opening position for testing analysis])
