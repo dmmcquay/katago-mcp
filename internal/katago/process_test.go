@@ -208,7 +208,7 @@ func TestEngineWithEnvironment(t *testing.T) {
 	// The engine should handle the error gracefully
 	ctx := context.Background()
 	err := engine.Start(ctx)
-	
+
 	// We expect this to fail since KataGo won't be in the temp directory
 	if err == nil {
 		engine.Stop()

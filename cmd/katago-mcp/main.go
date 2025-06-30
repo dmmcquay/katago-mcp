@@ -159,7 +159,7 @@ func main() {
 
 	// Start server
 	logger.Info("KataGo MCP Server ready")
-	
+
 	// Serve with context for cancellation support
 	done := make(chan error, 1)
 	go func() {
@@ -177,4 +177,3 @@ func main() {
 
 	_ = engine.Stop()
 }
-

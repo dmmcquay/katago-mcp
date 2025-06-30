@@ -110,4 +110,3 @@ func (l *Logger) Fatal(format string, v ...interface{}) {
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.Fatal(format, v...)
 }
-

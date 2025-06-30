@@ -28,7 +28,7 @@ func TestAnalyzePositionTool(t *testing.T) {
 
 	// Test with simple SGF
 	sgf := `(;GM[1]FF[4]SZ[19]KM[7.5];B[dd];W[pp])`
-	
+
 	args := map[string]interface{}{
 		"sgf": sgf,
 	}
@@ -195,12 +195,12 @@ func TestAnalyzePositionArguments(t *testing.T) {
 		{
 			name: "With analysis options",
 			args: map[string]interface{}{
-				"sgf":             "(;GM[1]FF[4]SZ[19]KM[7.5];B[dd];W[pp])",
-				"maxVisits":       100,
-				"maxTime":         5.0,
-				"includePolicy":   true,
+				"sgf":              "(;GM[1]FF[4]SZ[19]KM[7.5];B[dd];W[pp])",
+				"maxVisits":        100,
+				"maxTime":          5.0,
+				"includePolicy":    true,
 				"includeOwnership": true,
-				"verbose":         true,
+				"verbose":          true,
 			},
 			wantErr: true, // Will fail because engine won't start
 		},

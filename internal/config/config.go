@@ -194,4 +194,3 @@ func GetConfigPath() string {
 
 	return ""
 }
-

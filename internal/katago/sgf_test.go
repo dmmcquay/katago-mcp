@@ -95,13 +95,13 @@ func TestSGFCoordinateConversion(t *testing.T) {
 		sgfCoord string
 		want     string
 	}{
-		{"aa", "A19"},  // Bottom-left corner
-		{"sa", "T19"},  // Bottom-right corner (skipping I)
-		{"as", "A1"},   // Top-left corner
-		{"ss", "T1"},   // Top-right corner
-		{"dd", "D16"},  // Standard corner stone
-		{"pd", "Q16"},  // Standard corner stone
-		{"jj", "K10"},  // Center (skipping I)
+		{"aa", "A19"}, // Bottom-left corner
+		{"sa", "T19"}, // Bottom-right corner (skipping I)
+		{"as", "A1"},  // Top-left corner
+		{"ss", "T1"},  // Top-right corner
+		{"dd", "D16"}, // Standard corner stone
+		{"pd", "Q16"}, // Standard corner stone
+		{"jj", "K10"}, // Center (skipping I)
 	}
 
 	for _, tt := range tests {

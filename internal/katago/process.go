@@ -34,32 +34,32 @@ type Engine struct {
 
 // Response represents a KataGo analysis response
 type Response struct {
-	ID         string                   `json:"id"`
-	TurnNumber int                      `json:"turnNumber"`
-	MoveInfos  []MoveInfo               `json:"moveInfos"`
-	RootInfo   RootInfo                 `json:"rootInfo"`
-	Error      *ErrorResponse           `json:"error,omitempty"`
-	Raw        map[string]interface{}   `json:"-"`
+	ID         string                 `json:"id"`
+	TurnNumber int                    `json:"turnNumber"`
+	MoveInfos  []MoveInfo             `json:"moveInfos"`
+	RootInfo   RootInfo               `json:"rootInfo"`
+	Error      *ErrorResponse         `json:"error,omitempty"`
+	Raw        map[string]interface{} `json:"-"`
 }
 
 // MoveInfo contains analysis for a single move
 type MoveInfo struct {
-	Move       string  `json:"move"`
-	Visits     int     `json:"visits"`
-	Winrate    float64 `json:"winrate"`
-	ScoreLead  float64 `json:"scoreLead"`
-	ScoreMean  float64 `json:"scoreMean"`
-	PV         []string `json:"pv"`
-	Order      int     `json:"order"`
+	Move      string   `json:"move"`
+	Visits    int      `json:"visits"`
+	Winrate   float64  `json:"winrate"`
+	ScoreLead float64  `json:"scoreLead"`
+	ScoreMean float64  `json:"scoreMean"`
+	PV        []string `json:"pv"`
+	Order     int      `json:"order"`
 }
 
 // RootInfo contains information about the root position
 type RootInfo struct {
-	Visits       int     `json:"visits"`
-	Winrate      float64 `json:"winrate"`
-	ScoreLead    float64 `json:"scoreLead"`
-	ScoreMean    float64 `json:"scoreMean"`
-	ScoreStdev   float64 `json:"scoreStdev"`
+	Visits        int     `json:"visits"`
+	Winrate       float64 `json:"winrate"`
+	ScoreLead     float64 `json:"scoreLead"`
+	ScoreMean     float64 `json:"scoreMean"`
+	ScoreStdev    float64 `json:"scoreStdev"`
 	CurrentPlayer string  `json:"currentPlayer"`
 }
 
@@ -100,7 +100,7 @@ func (e *Engine) Start(ctx context.Context) error {
 
 	// Create command
 	e.cmd = exec.CommandContext(ctx, e.config.BinaryPath, args...)
-	
+
 	// Set up pipes
 	stdin, err := e.cmd.StdinPipe()
 	if err != nil {
@@ -215,14 +215,14 @@ func (e *Engine) IsRunning() bool {
 func (e *Engine) configure() error {
 	// Configure analysis engine
 	config := map[string]interface{}{
-		"id": "configure",
+		"id":     "configure",
 		"action": "setAnalysisEngineOptions",
 		"analysisEngineOptions": map[string]interface{}{
-			"numThreads": e.config.NumThreads,
-			"maxVisits":  e.config.MaxVisits,
-			"maxTime":    e.config.MaxTime,
+			"numThreads":         e.config.NumThreads,
+			"maxVisits":          e.config.MaxVisits,
+			"maxTime":            e.config.MaxTime,
 			"reportDuringSearch": false,
-			"allowResignation": false,
+			"allowResignation":   false,
 		},
 	}
 
@@ -316,7 +316,7 @@ func (e *Engine) healthCheckRoutine() {
 		case <-ticker.C:
 			// Send a simple query to check if engine is responsive
 			query := map[string]interface{}{
-				"id": "health",
+				"id":     "health",
 				"action": "query_version",
 			}
 

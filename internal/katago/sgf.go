@@ -10,13 +10,13 @@ import (
 // Position represents a board position for KataGo analysis
 type Position struct {
 	// Board state
-	Rules      string     `json:"rules"`
-	BoardXSize int        `json:"boardXSize"`
-	BoardYSize int        `json:"boardYSize"`
+	Rules         string  `json:"rules"`
+	BoardXSize    int     `json:"boardXSize"`
+	BoardYSize    int     `json:"boardYSize"`
 	InitialStones []Stone `json:"initialStones,omitempty"`
-	Moves      []Move     `json:"moves"`
+	Moves         []Move  `json:"moves"`
 	InitialPlayer string  `json:"initialPlayer,omitempty"`
-	Komi       float64    `json:"komi"`
+	Komi          float64 `json:"komi"`
 }
 
 // Stone represents a stone on the board
@@ -64,7 +64,7 @@ func (p *SGFParser) Parse() (*Position, error) {
 	// Parse nodes
 	for p.index < len(p.content) {
 		p.skipWhitespace()
-		
+
 		if p.index >= len(p.content) {
 			break
 		}
@@ -215,7 +215,7 @@ func (p *SGFParser) parseProperty() (string, []string, error) {
 	// Parse values
 	for p.index < len(p.content) {
 		p.skipWhitespace()
-		
+
 		if p.index >= len(p.content) || p.content[p.index] != '[' {
 			break
 		}
@@ -282,7 +282,7 @@ func (p *SGFParser) sgfToKataGo(coord string) string {
 
 // skipWhitespace skips whitespace characters
 func (p *SGFParser) skipWhitespace() {
-	for p.index < len(p.content) && (p.content[p.index] == ' ' || p.content[p.index] == '\t' || 
+	for p.index < len(p.content) && (p.content[p.index] == ' ' || p.content[p.index] == '\t' ||
 		p.content[p.index] == '\n' || p.content[p.index] == '\r') {
 		p.index++
 	}

@@ -277,4 +277,3 @@ func GetInstallationInstructions() string {
 
 	return instructions.String()
 }
-

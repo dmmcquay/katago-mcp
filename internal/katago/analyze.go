@@ -12,32 +12,32 @@ type AnalysisRequest struct {
 	Position *Position
 
 	// Analysis parameters (override defaults if specified)
-	MaxVisits  *int     `json:"maxVisits,omitempty"`
-	MaxTime    *float64 `json:"maxTime,omitempty"`
+	MaxVisits *int     `json:"maxVisits,omitempty"`
+	MaxTime   *float64 `json:"maxTime,omitempty"`
 
 	// Optional parameters
-	IncludePolicy      bool     `json:"includePolicy,omitempty"`
-	IncludeOwnership   bool     `json:"includeOwnership,omitempty"`
-	IncludeMovesOwnership bool  `json:"includeMovesOwnership,omitempty"`
-	IncludePVVisits    bool     `json:"includePVVisits,omitempty"`
-	AvoidMoves         []string `json:"avoidMoves,omitempty"`
-	AllowMoves         []string `json:"allowMoves,omitempty"`
+	IncludePolicy         bool     `json:"includePolicy,omitempty"`
+	IncludeOwnership      bool     `json:"includeOwnership,omitempty"`
+	IncludeMovesOwnership bool     `json:"includeMovesOwnership,omitempty"`
+	IncludePVVisits       bool     `json:"includePVVisits,omitempty"`
+	AvoidMoves            []string `json:"avoidMoves,omitempty"`
+	AllowMoves            []string `json:"allowMoves,omitempty"`
 }
 
 // AnalysisResult represents the analysis result
 type AnalysisResult struct {
 	// Move analysis
 	MoveInfos []MoveInfo `json:"moveInfos"`
-	
+
 	// Root position info
 	RootInfo RootInfo `json:"rootInfo"`
-	
+
 	// Policy prior (if requested)
 	Policy map[string]float64 `json:"policy,omitempty"`
-	
+
 	// Ownership map (if requested)
 	Ownership [][]float64 `json:"ownership,omitempty"`
-	
+
 	// Move-specific ownership (if requested)
 	MovesOwnership map[string][][]float64 `json:"movesOwnership,omitempty"`
 }
@@ -51,18 +51,18 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 
 	// Build query
 	query := map[string]interface{}{
-		"action": "analyze",
-		"includePolicy": req.IncludePolicy,
-		"includeOwnership": req.IncludeOwnership,
+		"action":                "analyze",
+		"includePolicy":         req.IncludePolicy,
+		"includeOwnership":      req.IncludeOwnership,
 		"includeMovesOwnership": req.IncludeMovesOwnership,
-		"includePVVisits": req.IncludePVVisits,
+		"includePVVisits":       req.IncludePVVisits,
 	}
 
 	// Add position data
 	query["rules"] = req.Position.Rules
 	query["boardXSize"] = req.Position.BoardXSize
 	query["boardYSize"] = req.Position.BoardYSize
-	
+
 	if req.Position.Komi != 0 {
 		query["komi"] = req.Position.Komi
 	}
@@ -107,7 +107,7 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		avoid := make([]map[string]interface{}, len(req.AvoidMoves))
 		for i, move := range req.AvoidMoves {
 			avoid[i] = map[string]interface{}{
-				"moves": []string{move},
+				"moves":      []string{move},
 				"untilDepth": 1,
 			}
 		}
