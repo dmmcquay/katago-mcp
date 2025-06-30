@@ -138,8 +138,10 @@ jobs:
         
         # Download a small test model (15-block network)
         echo "Downloading test model..."
-        wget -q -O ~/.katago-mcp-test/test-model.bin.gz \
-          "https://media.katagotraining.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
+        # Use a small model from katagoarchive.org for faster CI testing
+        wget -O ~/.katago-mcp-test/test-model.bin.gz \
+          "https://katagoarchive.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz" || \
+        echo "Failed to download model"
         
         # Generate minimal config for testing
         cat > ~/.katago-mcp-test/test-config.cfg << 'EOF'
@@ -220,8 +222,9 @@ jobs:
         
         # Download test model
         echo "Downloading test model..."
+        # Use the same model from katagoarchive.org
         curl -L -o ~/.katago-mcp-test/test-model.bin.gz \
-          "https://media.katagotraining.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
+          "https://katagoarchive.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
         
         # Generate config using KataGo's built-in generator
         echo "Generating KataGo config..."

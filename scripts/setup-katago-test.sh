@@ -28,9 +28,9 @@ if [ ! -f "$MODEL_PATH" ]; then
     echo "📥 Downloading test model..."
     # Download a smaller model for faster testing
     if command -v wget &> /dev/null; then
-        wget -O "$MODEL_PATH" "https://media.katagotraining.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
+        wget -O "$MODEL_PATH" "https://katagoarchive.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
     else
-        curl -L -o "$MODEL_PATH" "https://media.katagotraining.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
+        curl -L -o "$MODEL_PATH" "https://katagoarchive.org/g170/neuralnets/g170-b15c192-s1672170752-d466197061.bin.gz"
     fi
     echo "✅ Model downloaded to: $MODEL_PATH"
 else
