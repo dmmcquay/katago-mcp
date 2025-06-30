@@ -77,7 +77,7 @@ func Load(configPath string) (*Config, error) {
 
 	// Load from JSON file if provided
 	if configPath != "" {
-		data, err := os.ReadFile(configPath)
+		data, err := os.ReadFile(configPath) // #nosec G304 -- configPath is user-specified configuration file
 		if err != nil {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}

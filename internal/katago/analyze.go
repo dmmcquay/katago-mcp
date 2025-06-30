@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// AnalysisRequest represents a request to analyze a position
+// AnalysisRequest represents a request to analyze a position.
 type AnalysisRequest struct {
 	// Position to analyze
 	Position *Position
@@ -24,7 +24,7 @@ type AnalysisRequest struct {
 	AllowMoves            []string `json:"allowMoves,omitempty"`
 }
 
-// AnalysisResult represents the analysis result
+// AnalysisResult represents the analysis result.
 type AnalysisResult struct {
 	// Move analysis
 	MoveInfos []MoveInfo `json:"moveInfos"`
@@ -42,7 +42,7 @@ type AnalysisResult struct {
 	MovesOwnership map[string][][]float64 `json:"movesOwnership,omitempty"`
 }
 
-// Analyze analyzes a position using KataGo
+// Analyze analyzes a position using KataGo.
 func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisResult, error) {
 	// Validate request
 	if err := ValidatePosition(req.Position); err != nil {
@@ -187,7 +187,7 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 	return result, nil
 }
 
-// AnalyzeSGF analyzes a position from SGF content
+// AnalyzeSGF analyzes a position from SGF content.
 func (e *Engine) AnalyzeSGF(ctx context.Context, sgfContent string, moveNum int) (*AnalysisResult, error) {
 	// Parse SGF
 	parser := NewSGFParser(sgfContent)
@@ -209,7 +209,7 @@ func (e *Engine) AnalyzeSGF(ctx context.Context, sgfContent string, moveNum int)
 	return e.Analyze(ctx, req)
 }
 
-// FormatAnalysisResult formats an analysis result as human-readable text
+// FormatAnalysisResult formats an analysis result as human-readable text.
 func FormatAnalysisResult(result *AnalysisResult, verbose bool) string {
 	var sb strings.Builder
 

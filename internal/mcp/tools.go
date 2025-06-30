@@ -12,13 +12,13 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// ToolsHandler manages MCP tools for KataGo
+// ToolsHandler manages MCP tools for KataGo.
 type ToolsHandler struct {
 	engine *katago.Engine
 	logger *logging.Logger
 }
 
-// NewToolsHandler creates a new tools handler
+// NewToolsHandler creates a new tools handler.
 func NewToolsHandler(engine *katago.Engine, logger *logging.Logger) *ToolsHandler {
 	return &ToolsHandler{
 		engine: engine,
@@ -26,7 +26,7 @@ func NewToolsHandler(engine *katago.Engine, logger *logging.Logger) *ToolsHandle
 	}
 }
 
-// RegisterTools registers all tools with the MCP server
+// RegisterTools registers all tools with the MCP server.
 func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 	// Register analyzePosition tool
 	analyzePositionTool := mcp.NewTool("analyzePosition",
@@ -77,7 +77,7 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 	s.AddTool(stopEngineTool, h.handleStopEngine)
 }
 
-// handleAnalyzePosition handles the analyzePosition tool
+// handleAnalyzePosition handles the analyzePosition tool.
 func (h *ToolsHandler) handleAnalyzePosition(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
@@ -219,7 +219,7 @@ func (h *ToolsHandler) handleAnalyzePosition(ctx context.Context, request mcp.Ca
 	return mcp.NewToolResultText(string(resultJSON)), nil
 }
 
-// handleGetEngineStatus handles the getEngineStatus tool
+// handleGetEngineStatus handles the getEngineStatus tool.
 func (h *ToolsHandler) handleGetEngineStatus(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	status := "stopped"
 	if h.engine.IsRunning() {
@@ -230,7 +230,7 @@ func (h *ToolsHandler) handleGetEngineStatus(ctx context.Context, request mcp.Ca
 	return mcp.NewToolResultText(info), nil
 }
 
-// handleStartEngine handles the startEngine tool
+// handleStartEngine handles the startEngine tool.
 func (h *ToolsHandler) handleStartEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	if h.engine.IsRunning() {
 		return mcp.NewToolResultText("KataGo engine is already running"), nil
@@ -243,7 +243,7 @@ func (h *ToolsHandler) handleStartEngine(ctx context.Context, request mcp.CallTo
 	return mcp.NewToolResultText("KataGo engine started successfully"), nil
 }
 
-// handleStopEngine handles the stopEngine tool
+// handleStopEngine handles the stopEngine tool.
 func (h *ToolsHandler) handleStopEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	if !h.engine.IsRunning() {
 		return mcp.NewToolResultText("KataGo engine is not running"), nil

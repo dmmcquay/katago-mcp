@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Position represents a board position for KataGo analysis
+// Position represents a board position for KataGo analysis.
 type Position struct {
 	// Board state
 	Rules         string  `json:"rules"`
@@ -19,25 +19,25 @@ type Position struct {
 	Komi          float64 `json:"komi"`
 }
 
-// Stone represents a stone on the board
+// Stone represents a stone on the board.
 type Stone struct {
 	Color    string `json:"color"`
 	Location string `json:"location"`
 }
 
-// Move represents a move in the game
+// Move represents a move in the game.
 type Move struct {
 	Color    string `json:"color"`
 	Location string `json:"location"`
 }
 
-// SGFParser parses SGF files
+// SGFParser parses SGF files.
 type SGFParser struct {
 	content string
 	index   int
 }
 
-// NewSGFParser creates a new SGF parser
+// NewSGFParser creates a new SGF parser.
 func NewSGFParser(content string) *SGFParser {
 	return &SGFParser{
 		content: strings.TrimSpace(content),
@@ -45,7 +45,7 @@ func NewSGFParser(content string) *SGFParser {
 	}
 }
 
-// Parse parses the SGF and returns a Position
+// Parse parses the SGF and returns a Position.
 func (p *SGFParser) Parse() (*Position, error) {
 	// Skip to first '('
 	if !p.skipTo('(') {
@@ -73,15 +73,16 @@ func (p *SGFParser) Parse() (*Position, error) {
 			break
 		}
 
-		if p.content[p.index] == ';' {
+		switch p.content[p.index] {
+		case ';':
 			p.index++
 			if err := p.parseNode(position); err != nil {
 				return nil, err
 			}
-		} else if p.content[p.index] == '(' {
+		case '(':
 			// Skip variations for now
 			p.skipVariation()
-		} else {
+		default:
 			p.index++
 		}
 	}
@@ -94,7 +95,7 @@ func (p *SGFParser) Parse() (*Position, error) {
 	return position, nil
 }
 
-// parseNode parses a single SGF node
+// parseNode parses a single SGF node.
 func (p *SGFParser) parseNode(position *Position) error {
 	for p.index < len(p.content) {
 		p.skipWhitespace()
@@ -170,24 +171,26 @@ func (p *SGFParser) parseNode(position *Position) error {
 		case "RU": // Rules
 			if len(values) > 0 {
 				rules := strings.ToLower(values[0])
-				if strings.Contains(rules, "japan") {
+				switch {
+				case strings.Contains(rules, "japan"):
 					position.Rules = "japanese"
-				} else if strings.Contains(rules, "korea") {
+				case strings.Contains(rules, "korea"):
 					position.Rules = "korean"
-				} else if strings.Contains(rules, "aga") {
+				case strings.Contains(rules, "aga"):
 					position.Rules = "aga"
-				} else if strings.Contains(rules, "new zealand") {
+				case strings.Contains(rules, "new zealand"):
 					position.Rules = "new_zealand"
-				} else {
+				default:
 					position.Rules = "chinese"
 				}
 			}
 
 		case "PL": // Player to play
 			if len(values) > 0 {
-				if values[0] == "B" {
+				switch values[0] {
+				case "B":
 					position.InitialPlayer = "b"
-				} else if values[0] == "W" {
+				case "W":
 					position.InitialPlayer = "w"
 				}
 			}
@@ -197,8 +200,8 @@ func (p *SGFParser) parseNode(position *Position) error {
 	return nil
 }
 
-// parseProperty parses a property and its values
-func (p *SGFParser) parseProperty() (string, []string, error) {
+// parseProperty parses a property and its values.
+func (p *SGFParser) parseProperty() (prop string, values []string, err error) {
 	// Parse property name
 	propStart := p.index
 	for p.index < len(p.content) && p.content[p.index] >= 'A' && p.content[p.index] <= 'Z' {
@@ -209,8 +212,8 @@ func (p *SGFParser) parseProperty() (string, []string, error) {
 		return "", nil, fmt.Errorf("expected property name at position %d", p.index)
 	}
 
-	prop := p.content[propStart:p.index]
-	values := []string{}
+	prop = p.content[propStart:p.index]
+	values = []string{}
 
 	// Parse values
 	for p.index < len(p.content) {
@@ -224,12 +227,14 @@ func (p *SGFParser) parseProperty() (string, []string, error) {
 		valueStart := p.index
 		escaped := false
 
+	parseLoop:
 		for p.index < len(p.content) {
-			if p.content[p.index] == '\\' && !escaped {
+			switch {
+			case p.content[p.index] == '\\' && !escaped:
 				escaped = true
-			} else if p.content[p.index] == ']' && !escaped {
-				break
-			} else {
+			case p.content[p.index] == ']' && !escaped:
+				break parseLoop
+			default:
 				escaped = false
 			}
 			p.index++
@@ -257,7 +262,7 @@ func (p *SGFParser) parseProperty() (string, []string, error) {
 	return prop, values, nil
 }
 
-// sgfToKataGo converts SGF coordinates to KataGo format
+// sgfToKataGo converts SGF coordinates to KataGo format.
 func (p *SGFParser) sgfToKataGo(coord string) string {
 	if len(coord) != 2 {
 		return coord
@@ -267,7 +272,7 @@ func (p *SGFParser) sgfToKataGo(coord string) string {
 	y := coord[1] - 'a'
 
 	// KataGo uses A1 style (A-T, skipping I)
-	col := ""
+	var col string
 	if x < 8 {
 		col = string('A' + x)
 	} else {
@@ -280,7 +285,7 @@ func (p *SGFParser) sgfToKataGo(coord string) string {
 	return col + row
 }
 
-// skipWhitespace skips whitespace characters
+// skipWhitespace skips whitespace characters.
 func (p *SGFParser) skipWhitespace() {
 	for p.index < len(p.content) && (p.content[p.index] == ' ' || p.content[p.index] == '\t' ||
 		p.content[p.index] == '\n' || p.content[p.index] == '\r') {
@@ -288,7 +293,7 @@ func (p *SGFParser) skipWhitespace() {
 	}
 }
 
-// skipTo skips to the specified character
+// skipTo skips to the specified character.
 func (p *SGFParser) skipTo(ch byte) bool {
 	for p.index < len(p.content) {
 		if p.content[p.index] == ch {
@@ -299,7 +304,7 @@ func (p *SGFParser) skipTo(ch byte) bool {
 	return false
 }
 
-// skipVariation skips a variation subtree
+// skipVariation skips a variation subtree.
 func (p *SGFParser) skipVariation() {
 	depth := 0
 	for p.index < len(p.content) {
@@ -316,7 +321,7 @@ func (p *SGFParser) skipVariation() {
 	}
 }
 
-// ValidatePosition validates a position for KataGo analysis
+// ValidatePosition validates a position for KataGo analysis.
 func ValidatePosition(pos *Position) error {
 	// Validate board size
 	if pos.BoardXSize < 2 || pos.BoardXSize > 25 || pos.BoardYSize < 2 || pos.BoardYSize > 25 {

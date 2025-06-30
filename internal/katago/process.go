@@ -14,7 +14,7 @@ import (
 	"github.com/dmmcquay/katago-mcp/internal/logging"
 )
 
-// Engine manages a KataGo process for analysis
+// Engine manages a KataGo process for analysis.
 type Engine struct {
 	config *config.KataGoConfig
 	logger *logging.Logger
@@ -32,7 +32,7 @@ type Engine struct {
 	healthCheck chan struct{}
 }
 
-// Response represents a KataGo analysis response
+// Response represents a KataGo analysis response.
 type Response struct {
 	ID         string                 `json:"id"`
 	TurnNumber int                    `json:"turnNumber"`
@@ -42,7 +42,7 @@ type Response struct {
 	Raw        map[string]interface{} `json:"-"`
 }
 
-// MoveInfo contains analysis for a single move
+// MoveInfo contains analysis for a single move.
 type MoveInfo struct {
 	Move      string   `json:"move"`
 	Visits    int      `json:"visits"`
@@ -53,7 +53,7 @@ type MoveInfo struct {
 	Order     int      `json:"order"`
 }
 
-// RootInfo contains information about the root position
+// RootInfo contains information about the root position.
 type RootInfo struct {
 	Visits        int     `json:"visits"`
 	Winrate       float64 `json:"winrate"`
@@ -63,13 +63,13 @@ type RootInfo struct {
 	CurrentPlayer string  `json:"currentPlayer"`
 }
 
-// ErrorResponse represents an error from KataGo
+// ErrorResponse represents an error from KataGo.
 type ErrorResponse struct {
 	Message string `json:"message"`
 	Code    string `json:"code,omitempty"`
 }
 
-// NewEngine creates a new KataGo engine
+// NewEngine creates a new KataGo engine.
 func NewEngine(cfg *config.KataGoConfig, logger *logging.Logger) *Engine {
 	return &Engine{
 		config:      cfg,
@@ -80,7 +80,7 @@ func NewEngine(cfg *config.KataGoConfig, logger *logging.Logger) *Engine {
 	}
 }
 
-// Start starts the KataGo process
+// Start starts the KataGo process.
 func (e *Engine) Start(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -99,7 +99,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	}
 
 	// Create command
-	e.cmd = exec.CommandContext(ctx, e.config.BinaryPath, args...)
+	e.cmd = exec.CommandContext(ctx, e.config.BinaryPath, args...) // #nosec G204 -- BinaryPath is validated configuration
 
 	// Set up pipes
 	stdin, err := e.cmd.StdinPipe()
@@ -148,7 +148,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the KataGo process
+// Stop stops the KataGo process.
 func (e *Engine) Stop() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -204,14 +204,14 @@ func (e *Engine) Stop() error {
 	return nil
 }
 
-// IsRunning returns whether the engine is running
+// IsRunning returns whether the engine is running.
 func (e *Engine) IsRunning() bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.running
 }
 
-// configure sends initial configuration commands to KataGo
+// configure sends initial configuration commands to KataGo.
 func (e *Engine) configure() error {
 	// Configure analysis engine
 	config := map[string]interface{}{
@@ -238,7 +238,7 @@ func (e *Engine) configure() error {
 	return nil
 }
 
-// readStdout reads responses from KataGo
+// readStdout reads responses from KataGo.
 func (e *Engine) readStdout() {
 	for {
 		select {
@@ -288,7 +288,7 @@ func (e *Engine) readStdout() {
 	}
 }
 
-// readStderr logs stderr output
+// readStderr logs stderr output.
 func (e *Engine) readStderr() {
 	scanner := bufio.NewScanner(e.stderr)
 	for scanner.Scan() {
@@ -304,7 +304,7 @@ func (e *Engine) readStderr() {
 	}
 }
 
-// healthCheckRoutine periodically checks if the engine is responsive
+// healthCheckRoutine periodically checks if the engine is responsive.
 func (e *Engine) healthCheckRoutine() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -339,7 +339,7 @@ func (e *Engine) healthCheckRoutine() {
 	}
 }
 
-// sendQuery sends a query to KataGo and waits for response
+// sendQuery sends a query to KataGo and waits for response.
 func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
 	e.mu.Lock()
 	if !e.running {
