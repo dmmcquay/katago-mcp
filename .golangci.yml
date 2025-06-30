@@ -18,16 +18,15 @@ linters:
     - durationcheck
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar  # replaced exportloopref
     - forcetypeassert
     - godot
     - makezero
     - nilerr
     - predeclared
-    - tenv
+    - usetesting  # replaced tenv
     - thelper
     - tparallel
-    - unconvert
     - unparam
     - wastedassign
     - whitespace
@@ -36,7 +35,8 @@ linters-settings:
   gofmt:
     simplify: true
   govet:
-    check-shadowing: true
+    enable:
+      - shadow  # replaced check-shadowing
   gocritic:
     enabled-tags:
       - diagnostic
@@ -52,11 +52,11 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-dirs:  # replaced run.skip-dirs
+    - vendor
+    - testdata
+  exclude-files:  # replaced run.skip-files
+    - ".*_test.go"
 
 run:
   timeout: 5m
-  skip-dirs:
-    - vendor
-    - testdata
-  skip-files:
-    - ".*_test.go"
