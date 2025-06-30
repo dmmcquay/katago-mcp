@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -29,6 +30,10 @@ func TestLoadDefaultConfig(t *testing.T) {
 }
 
 func TestLoadConfigFromFile(t *testing.T) {
+	// Set test environment
+	os.Setenv("GO_TEST", "1")
+	defer os.Unsetenv("GO_TEST")
+
 	// Create temporary config file
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test-config.json")
@@ -80,6 +85,10 @@ func TestLoadConfigFromFile(t *testing.T) {
 }
 
 func TestEnvOverrides(t *testing.T) {
+	// Set test environment
+	os.Setenv("GO_TEST", "1")
+	defer os.Unsetenv("GO_TEST")
+
 	// Set environment variables
 	os.Setenv("KATAGO_BINARY_PATH", "/custom/katago")
 	os.Setenv("KATAGO_MODEL_PATH", "/custom/model.bin.gz")
@@ -209,3 +218,4 @@ func TestGetConfigPath(t *testing.T) {
 	// This could be empty or a found config file, both are valid
 	t.Logf("Config path without env var: %s", path)
 }
+

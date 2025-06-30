@@ -16,33 +16,33 @@ func TestLoggerLevels(t *testing.T) {
 		shouldLog bool
 	}{
 		{
-			name:     "debug level logs everything",
-			logLevel: "debug",
-			testFunc: func(l *Logger) { l.Debug("test") },
+			name:      "debug level logs everything",
+			logLevel:  "debug",
+			testFunc:  func(l *Logger) { l.Debug("test") },
 			shouldLog: true,
 		},
 		{
-			name:     "info level skips debug",
-			logLevel: "info",
-			testFunc: func(l *Logger) { l.Debug("test") },
+			name:      "info level skips debug",
+			logLevel:  "info",
+			testFunc:  func(l *Logger) { l.Debug("test") },
 			shouldLog: false,
 		},
 		{
-			name:     "info level logs info",
-			logLevel: "info",
-			testFunc: func(l *Logger) { l.Info("test") },
+			name:      "info level logs info",
+			logLevel:  "info",
+			testFunc:  func(l *Logger) { l.Info("test") },
 			shouldLog: true,
 		},
 		{
-			name:     "error level only logs errors",
-			logLevel: "error",
-			testFunc: func(l *Logger) { l.Warn("test") },
+			name:      "error level only logs errors",
+			logLevel:  "error",
+			testFunc:  func(l *Logger) { l.Warn("test") },
 			shouldLog: false,
 		},
 		{
-			name:     "error level logs errors",
-			logLevel: "error",
-			testFunc: func(l *Logger) { l.Error("test") },
+			name:      "error level logs errors",
+			logLevel:  "error",
+			testFunc:  func(l *Logger) { l.Error("test") },
 			shouldLog: true,
 		},
 	}
@@ -110,13 +110,13 @@ func TestParseLevel(t *testing.T) {
 
 func TestLoggerSetLevel(t *testing.T) {
 	logger := NewLogger("[TEST] ", "info")
-	
+
 	if logger.GetLevel() != InfoLevel {
 		t.Errorf("Expected initial level to be InfoLevel")
 	}
 
 	logger.SetLevel(DebugLevel)
-	
+
 	if logger.GetLevel() != DebugLevel {
 		t.Errorf("Expected level to be DebugLevel after SetLevel")
 	}
@@ -153,3 +153,4 @@ func TestLoggerOutput(t *testing.T) {
 		t.Errorf("Expected prefix in output")
 	}
 }
+

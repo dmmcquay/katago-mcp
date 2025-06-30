@@ -1,0 +1,62 @@
+linters:
+  enable:
+    - gofmt
+    - govet
+    - staticcheck
+    - ineffassign
+    - misspell
+    - unconvert
+    - gocritic
+    - goimports
+    - gosec
+    - errcheck
+    - gosimple
+    - unused
+    - typecheck
+    - nolintlint
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - forcetypeassert
+    - godot
+    - makezero
+    - nilerr
+    - predeclared
+    - tenv
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+
+linters-settings:
+  gofmt:
+    simplify: true
+  govet:
+    check-shadowing: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  gosec:
+    severity: medium
+    confidence: medium
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  timeout: 5m
+  skip-dirs:
+    - vendor
+    - testdata
+  skip-files:
+    - ".*_test.go"

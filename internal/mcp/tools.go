@@ -1,8 +1,6 @@
 package mcp
 
 import (
-	"context"
-
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -17,3 +15,4 @@ func NewToolsHandler() *ToolsHandler {
 func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 	// TODO: Register analysis tools when implemented
 }
+

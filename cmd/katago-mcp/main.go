@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
-	"github.com/dmmcquay/katago-mcp/internal/mcp"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -19,6 +20,19 @@ var (
 )
 
 func main() {
+	// Parse command line flags
+	var showVersion bool
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
+	flag.Parse()
+
+	// Handle version flag
+	if showVersion {
+		fmt.Printf("katago-mcp version 0.1.0\n")
+		fmt.Printf("Git commit: %s\n", GitCommit)
+		fmt.Printf("Build time: %s\n", BuildTime)
+		os.Exit(0)
+	}
+
 	// Load configuration
 	configPath := config.GetConfigPath()
 	cfg, err := config.Load(configPath)
@@ -29,7 +43,7 @@ func main() {
 
 	// Create logger
 	logger := logging.NewLogger(cfg.Logging.Prefix, cfg.Logging.Level)
-	logger.Info("Starting KataGo MCP Server version %s (commit: %s, built: %s)", 
+	logger.Info("Starting KataGo MCP Server version %s (commit: %s, built: %s)",
 		cfg.Server.Version, GitCommit, BuildTime)
 
 	// Detect KataGo installation
@@ -75,17 +89,17 @@ func main() {
 	}
 
 	// Create MCP server
-	s := server.NewMCPServer(
+	mcpServer := server.NewMCPServer(
 		cfg.Server.Name,
 		cfg.Server.Version,
-		server.WithDescription(cfg.Server.Description),
+		server.WithLogging(),
 	)
 
 	// Register health check tool
-	healthTool := server.NewTool("health",
-		server.WithDescription("Check server and KataGo health status"),
+	healthTool := mcp.NewTool("health",
+		mcp.WithDescription("Check server and KataGo health status"),
 	)
-	s.AddTool(healthTool, func(ctx context.Context, req server.CallToolRequest) (*server.CallToolResult, error) {
+	mcpServer.AddTool(healthTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		status := fmt.Sprintf("KataGo MCP Server Health Status\n")
 		status += fmt.Sprintf("==============================\n")
 		status += fmt.Sprintf("Server Version: %s\n", cfg.Server.Version)
@@ -98,8 +112,8 @@ func main() {
 		}
 		status += fmt.Sprintf("  Model: %s\n", detection.ModelPath)
 		status += fmt.Sprintf("  Config: %s\n", detection.ConfigPath)
-		
-		return server.NewToolResultText(status), nil
+
+		return mcp.NewToolResultText(status), nil
 	})
 
 	// TODO: Initialize KataGo engine when we implement it
@@ -107,7 +121,8 @@ func main() {
 
 	// Start server
 	logger.Info("KataGo MCP Server ready")
-	if err := s.Serve(context.Background()); err != nil {
+	if err := server.ServeStdio(mcpServer); err != nil {
 		logger.Fatal("Server error: %v", err)
 	}
 }
+

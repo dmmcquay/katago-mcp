@@ -28,7 +28,7 @@ func DetectKataGo() (*DetectedSetup, error) {
 		setup.Errors = append(setup.Errors, fmt.Sprintf("Binary: %v", err))
 	} else {
 		setup.BinaryPath = binaryPath
-		
+
 		// Get version if binary found
 		if version, err := getKataGoVersion(binaryPath); err == nil {
 			setup.Version = version
@@ -78,7 +78,7 @@ func findKataGoBinary() (string, error) {
 
 	// Add user home paths
 	if home, err := os.UserHomeDir(); err == nil {
-		searchPaths = append(searchPaths, 
+		searchPaths = append(searchPaths,
 			filepath.Join(home, "bin", "katago"),
 			filepath.Join(home, ".local", "bin", "katago"),
 			filepath.Join(home, "katago", "katago"),
@@ -153,7 +153,7 @@ func findKataGoModel() (string, error) {
 
 	// Look for model files
 	modelExtensions := []string{".bin.gz", ".bin", ".txt.gz", ".txt"}
-	
+
 	for _, dir := range searchDirs {
 		if _, err := os.Stat(dir); err != nil {
 			continue
@@ -220,8 +220,8 @@ func findOrGenerateConfig(binaryPath, modelPath string) (string, error) {
 	if binaryPath != "" && modelPath != "" {
 		katagoHome := filepath.Join(getHomeDir(), ".katago")
 		configPath := filepath.Join(katagoHome, "analysis.cfg")
-		
-		return "", fmt.Errorf("no config found. Generate one with: %s genconfig -model %s -output %s", 
+
+		return "", fmt.Errorf("no config found. Generate one with: %s genconfig -model %s -output %s",
 			binaryPath, modelPath, configPath)
 	}
 
@@ -258,7 +258,7 @@ func GetInstallationInstructions() string {
 		instructions.WriteString("  OR download from: https://github.com/lightvector/KataGo/releases\n\n")
 	case "linux":
 		instructions.WriteString("Linux:\n")
-		instructions.WriteString("  Ubuntu/Debian: sudo apt install katago\n") 
+		instructions.WriteString("  Ubuntu/Debian: sudo apt install katago\n")
 		instructions.WriteString("  OR download from: https://github.com/lightvector/KataGo/releases\n\n")
 	case "windows":
 		instructions.WriteString("Windows:\n")
@@ -277,3 +277,4 @@ func GetInstallationInstructions() string {
 
 	return instructions.String()
 }
+
