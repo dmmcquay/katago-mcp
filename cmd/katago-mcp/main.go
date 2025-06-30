@@ -5,16 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
+	mcptools "github.com/dmmcquay/katago-mcp/internal/mcp"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
 var (
-	// Version information injected at build time
+	// Version information injected at build time.
 	GitCommit string = "unknown"
 	BuildTime string = "unknown"
 )
@@ -88,6 +91,34 @@ func main() {
 		detection.ConfigPath = cfg.KataGo.ConfigPath
 	}
 
+	// Update config with detected values
+	if cfg.KataGo.BinaryPath == "katago" {
+		cfg.KataGo.BinaryPath = detection.BinaryPath
+	}
+	if cfg.KataGo.ModelPath == "" {
+		cfg.KataGo.ModelPath = detection.ModelPath
+	}
+	if cfg.KataGo.ConfigPath == "" {
+		cfg.KataGo.ConfigPath = detection.ConfigPath
+	}
+
+	// Create KataGo engine
+	engine := katago.NewEngine(&cfg.KataGo, logger)
+
+	// Set up context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		logger.Info("Shutting down...")
+		cancel()
+		_ = engine.Stop()
+	}()
+
 	// Create MCP server
 	mcpServer := server.NewMCPServer(
 		cfg.Server.Name,
@@ -95,34 +126,54 @@ func main() {
 		server.WithLogging(),
 	)
 
+	// Create and register tools
+	toolsHandler := mcptools.NewToolsHandler(engine, logger)
+	toolsHandler.RegisterTools(mcpServer)
+
 	// Register health check tool
 	healthTool := mcp.NewTool("health",
 		mcp.WithDescription("Check server and KataGo health status"),
 	)
-	mcpServer.AddTool(healthTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		status := fmt.Sprintf("KataGo MCP Server Health Status\n")
-		status += fmt.Sprintf("==============================\n")
+	mcpServer.AddTool(healthTool, func(checkCtx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		status := "KataGo MCP Server Health Status\n"
+		status += "==============================\n"
 		status += fmt.Sprintf("Server Version: %s\n", cfg.Server.Version)
 		status += fmt.Sprintf("Git Commit: %s\n", GitCommit)
 		status += fmt.Sprintf("Build Time: %s\n", BuildTime)
-		status += fmt.Sprintf("\nKataGo Status:\n")
-		status += fmt.Sprintf("  Binary: %s\n", detection.BinaryPath)
+		status += "\nKataGo Status:\n"
+		status += fmt.Sprintf("  Binary: %s\n", cfg.KataGo.BinaryPath)
 		if detection.Version != "" {
 			status += fmt.Sprintf("  Version: %s\n", detection.Version)
 		}
-		status += fmt.Sprintf("  Model: %s\n", detection.ModelPath)
-		status += fmt.Sprintf("  Config: %s\n", detection.ConfigPath)
+		status += fmt.Sprintf("  Model: %s\n", cfg.KataGo.ModelPath)
+		status += fmt.Sprintf("  Config: %s\n", cfg.KataGo.ConfigPath)
+		status += "\nEngine Status: "
+		if engine.IsRunning() {
+			status += "running\n"
+		} else {
+			status += "stopped\n"
+		}
 
 		return mcp.NewToolResultText(status), nil
 	})
 
-	// TODO: Initialize KataGo engine when we implement it
-	// TODO: Register analysis tools when we implement handlers
-
 	// Start server
 	logger.Info("KataGo MCP Server ready")
-	if err := server.ServeStdio(mcpServer); err != nil {
-		logger.Fatal("Server error: %v", err)
-	}
-}
 
+	// Serve with context for cancellation support
+	done := make(chan error, 1)
+	go func() {
+		done <- server.ServeStdio(mcpServer)
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			logger.Error("Server error: %v", err)
+		}
+	case <-ctx.Done():
+		logger.Info("Server stopped by context cancellation")
+	}
+
+	_ = engine.Stop()
+}

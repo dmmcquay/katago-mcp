@@ -218,4 +218,3 @@ func TestGetConfigPath(t *testing.T) {
 	// This could be empty or a found config file, both are valid
 	t.Logf("Config path without env var: %s", path)
 }
-

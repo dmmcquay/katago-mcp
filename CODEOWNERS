@@ -1,0 +1,22 @@
+# CODEOWNERS file for katago-mcp
+# This file defines who owns and must review changes to specific parts of the codebase
+# For more info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @dmmcquay
+
+# Go source files
+*.go @dmmcquay
+
+# Configuration and build files
+Makefile @dmmcquay
+go.mod @dmmcquay
+go.sum @dmmcquay
+.golangci.yml @dmmcquay
+
+# CI/CD workflows
+.github/ @dmmcquay
+
+# Documentation
+*.md @dmmcquay
+LICENSE @dmmcquay

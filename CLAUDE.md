@@ -82,6 +82,15 @@ The server implements these KataGo analysis tools:
 
 8. **Planning and Phases**: When creating implementation plans or project phases, do not include time measurements (like "Week 1", "2 weeks", etc.). Focus on the logical progression of phases and let the user determine timelines.
 
+9. **Pre-Push Validation**: Always run the PR checks that will happen in CI locally (linter, tests, e2e, security) before pushing a commit/PR. Use `make ci` or individual commands (`make lint`, `make test`, `make build`) to validate your changes locally first. This prevents CI failures and ensures code quality.
+
+10. **PR Workflow**: 
+    - Create feature branches for all changes
+    - Open PRs against main branch
+    - All CI checks must pass (no approval required)
+    - You can self-merge once checks are green
+    - The CODEOWNERS file exists for documentation but approval is not enforced
+
 ## KataGo Setup
 
 KataGo must be installed and configured:

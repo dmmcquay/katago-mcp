@@ -153,4 +153,3 @@ func TestLoggerOutput(t *testing.T) {
 		t.Errorf("Expected prefix in output")
 	}
 }
-

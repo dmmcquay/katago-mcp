@@ -68,6 +68,21 @@ Then create a pull request on GitHub.
 
 ## Pull Request Guidelines
 
+### ⚠️ Required Process
+**ALL changes must go through pull requests. Direct pushes to `main` are prohibited.**
+
+Every PR must satisfy these requirements before merging:
+
+#### 🤖 Automated Checks (ALL must pass)
+- ✅ **Linting**: Code formatting and style checks
+- ✅ **Tests**: Unit and integration tests across multiple Go versions  
+- ✅ **Build**: Successful compilation and binary generation
+- ✅ **Security**: Vulnerability scanning with no critical/high issues
+
+#### 👤 Manual Review (Required)
+- ✅ **Maintainer Approval**: At least one approval from a repository maintainer
+- ✅ **Code Review**: Thorough review of logic, architecture, and security
+
 ### PR Title
 Use the same conventional commit format as commits.
 
@@ -84,6 +99,8 @@ Include:
 - [ ] Code is formatted (`make fmt`)
 - [ ] Documentation updated (if needed)
 - [ ] No breaking changes (or clearly documented)
+- [ ] All CI checks are green
+- [ ] PR has maintainer approval
 
 ## Code Style
 

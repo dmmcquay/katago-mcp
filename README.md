@@ -86,6 +86,20 @@ Run with race detection:
 go test -race ./...
 ```
 
+## Contributing
+
+All changes must be submitted via pull requests and require:
+- All CI checks to pass
+- No merge conflicts with main branch
+
+### Branch Protection
+
+The `main` branch is protected with the following rules:
+- Require a pull request before merging
+- Require status checks to pass before merging
+- Require branches to be up to date before merging
+- Include administrators in these restrictions
+
 ## License
 
 MIT License

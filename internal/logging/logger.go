@@ -24,7 +24,7 @@ type Logger struct {
 	reqIDKey string
 }
 
-func NewLogger(prefix string, level string) *Logger {
+func NewLogger(prefix, level string) *Logger {
 	l := &Logger{
 		logger:   log.New(os.Stderr, prefix, log.LstdFlags|log.Lmicroseconds),
 		level:    parseLevel(level),
@@ -110,4 +110,3 @@ func (l *Logger) Fatal(format string, v ...interface{}) {
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.Fatal(format, v...)
 }
-
