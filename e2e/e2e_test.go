@@ -405,13 +405,13 @@ func TestMCPServerE2E(t *testing.T) {
 // TestFindMistakesE2E tests game review with real KataGo
 func TestFindMistakesE2E(t *testing.T) {
 	env := SetupTestEnvironment(t)
-	
+
 	// Override config for mistake detection (needs more visits)
 	mistakesConfig := "/katago/config-mistakes.cfg"
 	if _, err := os.Stat(mistakesConfig); err == nil {
 		env.ConfigPath = mistakesConfig
 	}
-	
+
 	engine := env.CreateTestEngine(t)
 
 	ctx := context.Background()
