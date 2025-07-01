@@ -54,33 +54,43 @@ if ! download_if_missing "$KATAGO_BINARY_URL" "$KATAGO_BINARY_FILE"; then
     exit 1
 fi
 
-# Extract if it's an AppImage (for use in Docker)
+# Extract and prepare KataGo binary for Docker
 if [ -f "${ARTIFACTS_DIR}/${KATAGO_BINARY_FILE}" ]; then
     echo -e "${YELLOW}📦 Extracting KataGo binary...${NC}"
     cd "$ARTIFACTS_DIR"
+    
+    # First extract from zip
     unzip -o "$KATAGO_BINARY_FILE" katago || {
         echo -e "${RED}Failed to extract katago from zip${NC}"
         exit 1
     }
+    
     # Check if extracted file is an AppImage
     if file katago | grep -q "AppImage"; then
-        echo -e "${YELLOW}🔧 Extracting AppImage contents...${NC}"
+        echo -e "${YELLOW}🔧 KataGo is packaged as AppImage, extracting actual binary...${NC}"
         chmod +x katago
+        
+        # Extract AppImage contents
         ./katago --appimage-extract >/dev/null 2>&1 || {
             echo -e "${RED}Failed to extract AppImage${NC}"
             exit 1
         }
-        # Move the actual binary out
+        
+        # Find the actual binary
         if [ -f "squashfs-root/usr/bin/katago" ]; then
-            mv squashfs-root/usr/bin/katago katago.bin
+            mv squashfs-root/usr/bin/katago katago-extracted
             rm -rf squashfs-root katago
-            mv katago.bin katago
             echo -e "${GREEN}✅ Extracted KataGo binary from AppImage${NC}"
         else
             echo -e "${RED}Could not find katago binary in AppImage${NC}"
             exit 1
         fi
+    else
+        # Not an AppImage, just rename for consistency
+        mv katago katago-extracted
+        echo -e "${GREEN}✅ KataGo binary ready${NC}"
     fi
+    
     cd - >/dev/null
 fi
 

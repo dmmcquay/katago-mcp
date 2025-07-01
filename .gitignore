@@ -47,6 +47,9 @@ analysis.cfg
 docker/katago-artifacts/*.zip
 docker/katago-artifacts/*.bin.gz
 docker/katago-artifacts/*.gz
+docker/katago-artifacts/katago
+docker/katago-artifacts/katago-extracted
+docker/katago-artifacts/squashfs-root/
 # But keep the config files
 !docker/katago-artifacts/*.cfg
 
