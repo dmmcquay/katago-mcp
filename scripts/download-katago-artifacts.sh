@@ -7,8 +7,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ARTIFACTS_DIR="${SCRIPT_DIR}/../docker/katago-artifacts"
 
-# Artifact URLs
-KATAGO_VERSION="v1.16.3"
+# Artifact URLs - Using v1.14.1 which has a regular binary, not AppImage
+KATAGO_VERSION="v1.14.1"
 KATAGO_BINARY_URL="https://github.com/lightvector/KataGo/releases/download/${KATAGO_VERSION}/katago-${KATAGO_VERSION}-eigen-linux-x64.zip"
 KATAGO_BINARY_FILE="katago-${KATAGO_VERSION}-eigen-linux-x64.zip"
 
@@ -54,12 +54,12 @@ if ! download_if_missing "$KATAGO_BINARY_URL" "$KATAGO_BINARY_FILE"; then
     exit 1
 fi
 
-# Extract and prepare KataGo binary for Docker
+# Extract KataGo binary from zip
 if [ -f "${ARTIFACTS_DIR}/${KATAGO_BINARY_FILE}" ]; then
     echo -e "${YELLOW}📦 Extracting KataGo binary...${NC}"
     cd "$ARTIFACTS_DIR"
     
-    # First extract from zip
+    # Extract from zip
     unzip -o "$KATAGO_BINARY_FILE" katago || {
         echo -e "${RED}Failed to extract katago from zip${NC}"
         exit 1
@@ -67,31 +67,7 @@ if [ -f "${ARTIFACTS_DIR}/${KATAGO_BINARY_FILE}" ]; then
     
     # Make it executable
     chmod +x katago
-    
-    # Try to run with --version to detect if it's an AppImage
-    if ./katago --version 2>&1 | grep -q "No suitable fusermount"; then
-        echo -e "${YELLOW}🔧 KataGo is packaged as AppImage, extracting actual binary...${NC}"
-        
-        # Extract AppImage contents
-        ./katago --appimage-extract >/dev/null 2>&1 || {
-            echo -e "${RED}Failed to extract AppImage${NC}"
-            exit 1
-        }
-        
-        # Find the actual binary
-        if [ -f "squashfs-root/usr/bin/katago" ]; then
-            mv squashfs-root/usr/bin/katago katago-extracted
-            rm -rf squashfs-root katago
-            echo -e "${GREEN}✅ Extracted KataGo binary from AppImage${NC}"
-        else
-            echo -e "${RED}Could not find katago binary in AppImage${NC}"
-            exit 1
-        fi
-    else
-        # Not an AppImage, just rename for consistency
-        mv katago katago-extracted
-        echo -e "${GREEN}✅ KataGo binary ready${NC}"
-    fi
+    echo -e "${GREEN}✅ KataGo binary extracted and ready${NC}"
     
     cd - >/dev/null
 fi

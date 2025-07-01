@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install KataGo
-# The download script extracts the binary from the AppImage
-COPY docker/katago-artifacts/katago-extracted /usr/local/bin/katago
+# Using v1.14.1 which provides a regular binary
+COPY docker/katago-artifacts/katago /usr/local/bin/katago
 RUN chmod +x /usr/local/bin/katago
 
 # Copy model and config
