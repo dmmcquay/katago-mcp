@@ -118,4 +118,3 @@ func TestContextChaining(t *testing.T) {
 		t.Errorf("Expected request ID %s, got %s", requestID, retrievedReq)
 	}
 }
-

@@ -191,4 +191,3 @@ func TestJSONOutputFormat(t *testing.T) {
 		}
 	}
 }
-
