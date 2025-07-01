@@ -114,6 +114,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Download KataGo artifacts
+      run: |
+        echo "📥 Downloading KataGo artifacts for Docker build..."
+        ./scripts/download-katago-artifacts.sh
+    
     - name: Build and run E2E tests in Docker
       run: |
         echo "🐳 Building Docker image for E2E tests..."

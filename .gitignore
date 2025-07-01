@@ -43,6 +43,13 @@ config.json
 *.log
 analysis.cfg
 
+# KataGo artifacts for Docker builds
+docker/katago-artifacts/*.zip
+docker/katago-artifacts/*.bin.gz
+docker/katago-artifacts/*.gz
+# But keep the config files
+!docker/katago-artifacts/*.cfg
+
 # Temporary files
 *.tmp
 *.temp

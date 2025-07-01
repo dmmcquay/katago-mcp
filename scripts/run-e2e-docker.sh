@@ -3,20 +3,19 @@ set -e
 
 echo "🐳 Running E2E tests in Docker..."
 
-# Try to use pre-built base image if available
-BASE_IMAGE="ubuntu:22.04"
-if docker pull ghcr.io/dmmcquay/katago-base:1.15.3-cpu 2>/dev/null; then
-  echo "✅ Using pre-built KataGo base image"
-  BASE_IMAGE="ghcr.io/dmmcquay/katago-base:1.15.3-cpu"
-else
-  echo "ℹ️  Pre-built image not available, will build KataGo from scratch"
+# Ensure we're in the project root
+cd "$(dirname "$0")/.."
+
+# Check if artifacts exist, download if missing
+ARTIFACTS_DIR="docker/katago-artifacts"
+if [ ! -f "${ARTIFACTS_DIR}/katago-v1.16.3-eigen-linux-x64.zip" ] || [ ! -f "${ARTIFACTS_DIR}/test-model.bin.gz" ]; then
+  echo "📥 KataGo artifacts not found, downloading..."
+  ./scripts/download-katago-artifacts.sh
 fi
 
 # Build the Docker image
 echo "Building E2E test image..."
-docker build -f Dockerfile.e2e \
-  --build-arg BASE_IMAGE="${BASE_IMAGE}" \
-  -t katago-mcp-e2e .
+docker build -f Dockerfile.e2e -t katago-mcp-e2e .
 
 # Run the tests
 echo "Running tests..."

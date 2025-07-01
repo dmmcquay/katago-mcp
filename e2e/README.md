@@ -4,18 +4,18 @@ This directory contains end-to-end tests that run against a real KataGo instance
 
 ## Docker Architecture
 
-The e2e tests use a two-layer Docker approach:
+The e2e tests use Docker with locally cached KataGo artifacts:
 
-1. **Base Image** (`katago-base`): Contains KataGo binary, neural network model, and config
-   - Built once and pushed to GitHub Container Registry
-   - Pinned to specific KataGo version (1.15.3)
-   - Includes a 15-block neural network (~30MB)
-   - Optimized for CPU-only testing
+1. **Artifact Management**:
+   - KataGo binary and neural network model are downloaded on-demand
+   - Artifacts are cached locally in `docker/katago-artifacts/`
+   - Not stored in git to keep repository size small
+   - Downloaded automatically by CI before building
 
-2. **Test Image** (`Dockerfile.e2e`): Builds on base image and adds test code
-   - Uses pre-built base image when available
-   - Falls back to building from scratch if needed
-   - Runs the actual e2e tests
+2. **Test Image** (`Dockerfile.e2e`):
+   - Based on `golang:1.23-bookworm`
+   - Copies pre-downloaded KataGo artifacts
+   - Runs the e2e tests against real KataGo instance
 
 ## Running E2E Tests
 
