@@ -1,0 +1,18 @@
+{
+  "server": {
+    "name": "katago-mcp",
+    "version": "0.1.0"
+  },
+  "logging": {
+    "level": "info",
+    "prefix": "[katago-mcp] "
+  },
+  "katago": {
+    "binary_path": "katago",
+    "model_path": "~/.katago/default_model.bin.gz",
+    "config_path": "~/.katago/analysis.cfg",
+    "num_threads": 4,
+    "max_visits": 1000,
+    "max_time": 10.0
+  }
+}

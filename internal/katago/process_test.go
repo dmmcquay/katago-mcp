@@ -23,7 +23,7 @@ func TestEngineLifecycle(t *testing.T) {
 		MaxTime:    1.0,
 	}
 
-	logger := logging.NewLogger("test: ", "debug")
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
 	engine := NewEngine(cfg, logger)
 
 	ctx := context.Background()
@@ -75,7 +75,7 @@ func TestEngineAnalysis(t *testing.T) {
 		MaxTime:    1.0,
 	}
 
-	logger := logging.NewLogger("test: ", "debug")
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
 	engine := NewEngine(cfg, logger)
 
 	ctx := context.Background()
@@ -149,7 +149,7 @@ func TestEngineContextCancellation(t *testing.T) {
 		MaxTime:    10.0,
 	}
 
-	logger := logging.NewLogger("test: ", "debug")
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
 	engine := NewEngine(cfg, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -201,7 +201,7 @@ func TestEngineWithEnvironment(t *testing.T) {
 		MaxTime:    0.1,
 	}
 
-	logger := logging.NewLogger("test: ", "debug")
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
 	engine := NewEngine(cfg, logger)
 
 	// This should work even if KataGo isn't installed in the temp directory

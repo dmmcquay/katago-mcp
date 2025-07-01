@@ -16,11 +16,11 @@ import (
 // ToolsHandler manages MCP tools for KataGo.
 type ToolsHandler struct {
 	engine *katago.Engine
-	logger *logging.Logger
+	logger logging.ContextLogger
 }
 
 // NewToolsHandler creates a new tools handler.
-func NewToolsHandler(engine *katago.Engine, logger *logging.Logger) *ToolsHandler {
+func NewToolsHandler(engine *katago.Engine, logger logging.ContextLogger) *ToolsHandler {
 	return &ToolsHandler{
 		engine: engine,
 		logger: logger,
@@ -135,9 +135,18 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 
 // HandleAnalyzePosition handles the analyzePosition tool.
 func (h *ToolsHandler) HandleAnalyzePosition(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "analyzePosition")
+
+	logger.Info("Handling analyzePosition request")
+
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
+		logger.Debug("Starting KataGo engine")
 		if err := h.engine.Start(ctx); err != nil {
+			logger.Error("Failed to start engine: %v", err)
 			return nil, fmt.Errorf("failed to start engine: %w", err)
 		}
 		// Give engine a moment to initialize
@@ -277,46 +286,85 @@ func (h *ToolsHandler) HandleAnalyzePosition(ctx context.Context, request mcp.Ca
 
 // HandleGetEngineStatus handles the getEngineStatus tool.
 func (h *ToolsHandler) HandleGetEngineStatus(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "getEngineStatus")
+
+	logger.Info("Handling getEngineStatus request")
+
 	status := "stopped"
 	if h.engine.IsRunning() {
 		status = "running"
 	}
 
+	logger.Debug("Engine status checked", "status", status)
 	info := fmt.Sprintf("KataGo engine status: %s", status)
 	return mcp.NewToolResultText(info), nil
 }
 
 // HandleStartEngine handles the startEngine tool.
 func (h *ToolsHandler) HandleStartEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "startEngine")
+
+	logger.Info("Handling startEngine request")
+
 	if h.engine.IsRunning() {
+		logger.Debug("Engine already running")
 		return mcp.NewToolResultText("KataGo engine is already running"), nil
 	}
 
+	logger.Info("Starting KataGo engine")
 	if err := h.engine.Start(ctx); err != nil {
+		logger.Error("Failed to start engine: %v", err)
 		return nil, fmt.Errorf("failed to start engine: %w", err)
 	}
 
+	logger.Info("KataGo engine started successfully")
 	return mcp.NewToolResultText("KataGo engine started successfully"), nil
 }
 
 // HandleStopEngine handles the stopEngine tool.
 func (h *ToolsHandler) HandleStopEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "stopEngine")
+
+	logger.Info("Handling stopEngine request")
+
 	if !h.engine.IsRunning() {
+		logger.Debug("Engine not running")
 		return mcp.NewToolResultText("KataGo engine is not running"), nil
 	}
 
+	logger.Info("Stopping KataGo engine")
 	if err := h.engine.Stop(); err != nil {
+		logger.Error("Failed to stop engine: %v", err)
 		return nil, fmt.Errorf("failed to stop engine: %w", err)
 	}
 
+	logger.Info("KataGo engine stopped successfully")
 	return mcp.NewToolResultText("KataGo engine stopped successfully"), nil
 }
 
 // HandleFindMistakes handles the findMistakes tool.
 func (h *ToolsHandler) HandleFindMistakes(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "findMistakes")
+
+	logger.Info("Handling findMistakes request")
+
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
+		logger.Debug("Starting KataGo engine")
 		if err := h.engine.Start(ctx); err != nil {
+			logger.Error("Failed to start engine: %v", err)
 			return nil, fmt.Errorf("failed to start engine: %w", err)
 		}
 	}
@@ -368,10 +416,15 @@ func (h *ToolsHandler) HandleFindMistakes(ctx context.Context, request mcp.CallT
 	}
 
 	// Review the game
+	logger.Info("Reviewing game", "thresholds", thresholds)
 	review, err := h.engine.ReviewGame(ctx, sgf, thresholds)
 	if err != nil {
+		logger.Error("Failed to review game: %v", err)
 		return nil, fmt.Errorf("failed to review game: %w", err)
 	}
+	logger.Info("Game review completed",
+		"totalMoves", review.Summary.TotalMoves,
+		"mistakes", len(review.Mistakes))
 
 	// Format the result
 	var sb strings.Builder
@@ -414,9 +467,18 @@ func (h *ToolsHandler) HandleFindMistakes(ctx context.Context, request mcp.CallT
 
 // HandleEvaluateTerritory handles the evaluateTerritory tool.
 func (h *ToolsHandler) HandleEvaluateTerritory(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "evaluateTerritory")
+
+	logger.Info("Handling evaluateTerritory request")
+
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
+		logger.Debug("Starting KataGo engine")
 		if err := h.engine.Start(ctx); err != nil {
+			logger.Error("Failed to start engine: %v", err)
 			return nil, fmt.Errorf("failed to start engine: %w", err)
 		}
 	}
@@ -457,10 +519,13 @@ func (h *ToolsHandler) HandleEvaluateTerritory(ctx context.Context, request mcp.
 	}
 
 	// Estimate territory
+	logger.Info("Estimating territory", "threshold", threshold)
 	estimate, err := h.engine.EstimateTerritory(ctx, position, threshold)
 	if err != nil {
+		logger.Error("Failed to estimate territory: %v", err)
 		return nil, fmt.Errorf("failed to estimate territory: %w", err)
 	}
+	logger.Debug("Territory estimation completed")
 
 	// Check if detailed estimates requested
 	includeEstimates := false
@@ -487,9 +552,18 @@ func (h *ToolsHandler) HandleEvaluateTerritory(ctx context.Context, request mcp.
 
 // HandleExplainMove handles the explainMove tool.
 func (h *ToolsHandler) HandleExplainMove(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Generate correlation ID for this request
+	ctx = logging.ContextWithCorrelationID(ctx, logging.GenerateCorrelationID())
+	ctx = logging.ContextWithRequestID(ctx, logging.GenerateRequestID())
+	logger := h.logger.WithContext(ctx).WithField("tool", "explainMove")
+
+	logger.Info("Handling explainMove request")
+
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
+		logger.Debug("Starting KataGo engine")
 		if err := h.engine.Start(ctx); err != nil {
+			logger.Error("Failed to start engine: %v", err)
 			return nil, fmt.Errorf("failed to start engine: %w", err)
 		}
 	}
@@ -532,10 +606,13 @@ func (h *ToolsHandler) HandleExplainMove(ctx context.Context, request mcp.CallTo
 	}
 
 	// Get explanation
+	logger.Info("Explaining move", "move", move)
 	explanation, err := h.engine.ExplainMove(ctx, position, move)
 	if err != nil {
+		logger.Error("Failed to explain move: %v", err)
 		return nil, fmt.Errorf("failed to explain move: %w", err)
 	}
+	logger.Debug("Move explanation completed", "winrate", explanation.Winrate)
 
 	// Format result
 	var sb strings.Builder

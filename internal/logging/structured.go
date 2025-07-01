@@ -6,21 +6,8 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
-)
-
-// contextKey is a type for context keys to avoid collisions.
-type contextKey string
-
-const (
-	// CorrelationIDKey is the context key for correlation IDs.
-	CorrelationIDKey contextKey = "correlation_id"
-	// RequestIDKey is the context key for request IDs.
-	RequestIDKey contextKey = "request_id"
 )
 
 // StructuredLogger provides JSON structured logging with correlation IDs.
@@ -78,10 +65,10 @@ func (l *StructuredLogger) WithContext(ctx context.Context) ContextLogger {
 	l.mu.RUnlock()
 
 	// Add context values
-	if correlationID := ctx.Value(CorrelationIDKey); correlationID != nil {
+	if correlationID, ok := CorrelationIDFromContext(ctx); ok {
 		newLogger.fields["correlation_id"] = correlationID
 	}
-	if requestID := ctx.Value(RequestIDKey); requestID != nil {
+	if requestID, ok := RequestIDFromContext(ctx); ok {
 		newLogger.fields["request_id"] = requestID
 	}
 
@@ -236,36 +223,3 @@ func levelToString(level Level) string {
 	}
 }
 
-// GenerateCorrelationID generates a new correlation ID.
-func GenerateCorrelationID() string {
-	return uuid.New().String()
-}
-
-// GenerateRequestID generates a new request ID.
-func GenerateRequestID() string {
-	// Use a shorter format for request IDs
-	id := uuid.New()
-	return strings.ReplaceAll(id.String(), "-", "")[:12]
-}
-
-// ContextWithCorrelationID returns a context with a correlation ID.
-func ContextWithCorrelationID(ctx context.Context, correlationID string) context.Context {
-	return context.WithValue(ctx, CorrelationIDKey, correlationID)
-}
-
-// ContextWithRequestID returns a context with a request ID.
-func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, RequestIDKey, requestID)
-}
-
-// CorrelationIDFromContext extracts correlation ID from context.
-func CorrelationIDFromContext(ctx context.Context) (string, bool) {
-	id, ok := ctx.Value(CorrelationIDKey).(string)
-	return id, ok
-}
-
-// RequestIDFromContext extracts request ID from context.
-func RequestIDFromContext(ctx context.Context) (string, bool) {
-	id, ok := ctx.Value(RequestIDKey).(string)
-	return id, ok
-}

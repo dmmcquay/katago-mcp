@@ -17,7 +17,7 @@ import (
 // Engine manages a KataGo process for analysis.
 type Engine struct {
 	config *config.KataGoConfig
-	logger *logging.Logger
+	logger logging.ContextLogger
 
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
@@ -74,7 +74,7 @@ type ErrorResponse struct {
 }
 
 // NewEngine creates a new KataGo engine.
-func NewEngine(cfg *config.KataGoConfig, logger *logging.Logger) *Engine {
+func NewEngine(cfg *config.KataGoConfig, logger logging.ContextLogger) *Engine {
 	return &Engine{
 		config:      cfg,
 		logger:      logger,

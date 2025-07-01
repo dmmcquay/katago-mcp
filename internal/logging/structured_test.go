@@ -161,20 +161,20 @@ func TestStructuredLoggerFormatting(t *testing.T) {
 func TestGenerateIDs(t *testing.T) {
 	// Test correlation ID generation
 	corrID := GenerateCorrelationID()
-	if len(corrID) != 36 { // UUID v4 with hyphens
-		t.Errorf("Expected correlation ID length 36, got %d", len(corrID))
+	if !strings.HasPrefix(corrID, "corr_") {
+		t.Errorf("Expected correlation ID to start with 'corr_', got %s", corrID)
 	}
-	if !strings.Contains(corrID, "-") {
-		t.Error("Expected correlation ID to contain hyphens")
+	if len(corrID) < 10 { // corr_ + at least 5 chars
+		t.Errorf("Expected correlation ID to be at least 10 chars, got %d", len(corrID))
 	}
 
 	// Test request ID generation
 	reqID := GenerateRequestID()
-	if len(reqID) != 12 {
-		t.Errorf("Expected request ID length 12, got %d", len(reqID))
+	if !strings.HasPrefix(reqID, "req_") {
+		t.Errorf("Expected request ID to start with 'req_', got %s", reqID)
 	}
-	if strings.Contains(reqID, "-") {
-		t.Error("Expected request ID not to contain hyphens")
+	if len(reqID) < 9 { // req_ + at least 5 chars
+		t.Errorf("Expected request ID to be at least 9 chars, got %d", len(reqID))
 	}
 
 	// Ensure IDs are unique
