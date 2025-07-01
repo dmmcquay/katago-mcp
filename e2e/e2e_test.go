@@ -22,7 +22,7 @@ type TestEnvironment struct {
 	BinaryPath string
 	ModelPath  string
 	ConfigPath string
-	Logger     *logging.Logger
+	Logger     logging.ContextLogger
 }
 
 // SetupTestEnvironment creates a test environment
@@ -74,7 +74,7 @@ func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 		t.Fatalf("Failed to find KataGo: %v", err)
 	}
 
-	logger := logging.NewLogger("[e2e-test] ", "debug")
+	logger := logging.NewLoggerAdapter(logging.NewLogger("[e2e-test] ", "debug"))
 
 	return &TestEnvironment{
 		BinaryPath: detected.BinaryPath,

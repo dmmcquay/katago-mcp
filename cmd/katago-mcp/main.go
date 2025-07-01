@@ -44,8 +44,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create logger
-	logger := logging.NewLogger(cfg.Logging.Prefix, cfg.Logging.Level)
+	// Create logger using new factory
+	logConfig := &logging.Config{
+		Level:   cfg.Logging.Level,
+		Format:  logging.LogFormat(os.Getenv("KATAGO_LOG_FORMAT")), // Will default to JSON if not set
+		Service: cfg.Server.Name,
+		Version: cfg.Server.Version,
+		Prefix:  cfg.Logging.Prefix,
+	}
+	logger := logging.NewLoggerFromConfig(logConfig)
 	logger.Info("Starting KataGo MCP Server version %s (commit: %s, built: %s)",
 		cfg.Server.Version, GitCommit, BuildTime)
 
@@ -169,7 +176,7 @@ func main() {
 	select {
 	case err := <-done:
 		if err != nil {
-			logger.Error("Server error: %v", err)
+			logger.Error("Server error", "error", err)
 		}
 	case <-ctx.Done():
 		logger.Info("Server stopped by context cancellation")

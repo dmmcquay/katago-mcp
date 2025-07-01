@@ -8,7 +8,7 @@ An MCP (Model Context Protocol) server that provides KataGo analysis capabilitie
 - MCP server implementation for KataGo integration
 - Automatic KataGo binary and model detection
 - Configuration via environment variables or JSON
-- Structured logging to stderr
+- Structured JSON logging with correlation IDs for request tracing
 - Graceful shutdown handling
 
 ### MCP Tools
@@ -65,6 +65,12 @@ cd katago-mcp
    export KATAGO_BINARY_PATH=/path/to/katago
    export KATAGO_MODEL_PATH=/path/to/model.bin.gz
    export KATAGO_CONFIG_PATH=/path/to/analysis.cfg
+   ```
+
+3. For production deployments, enable JSON logging:
+   ```bash
+   export KATAGO_LOG_FORMAT=json  # Default is 'json' for structured logs
+   export KATAGO_LOG_FORMAT=text  # Use 'text' for human-readable logs
    ```
 
 ### Adding to Claude
