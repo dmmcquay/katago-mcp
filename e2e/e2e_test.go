@@ -92,7 +92,7 @@ func (env *TestEnvironment) CreateTestEngine(t *testing.T) *katago.Engine {
 		ConfigPath: env.ConfigPath,
 		NumThreads: 1,
 		MaxVisits:  100,
-		MaxTime:    2.0, // Increased timeout for analysis
+		MaxTime:    10.0, // Longer timeout needed for KataGo initialization on first query
 	}
 
 	engine := katago.NewEngine(cfg, env.Logger)
@@ -225,7 +225,7 @@ func TestMCPServerE2E(t *testing.T) {
 			ConfigPath: env.ConfigPath,
 			NumThreads: 1,
 			MaxVisits:  100,
-			MaxTime:    2.0,
+			MaxTime:    10.0,
 		},
 		Logging: config.LoggingConfig{
 			Level: "debug",

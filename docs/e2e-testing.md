@@ -204,6 +204,23 @@ These are the same models used by KataGo and other Go applications.
 - No user-provided models are executed in CI
 - Tests run in isolated environments
 
+## CI Performance Optimization
+
+### Pre-built Base Image
+
+To speed up CI builds, we use a pre-built Docker image with KataGo already compiled:
+
+- **Image**: `ghcr.io/dmmcquay/katago-base:v1.14.1`
+- **Build time**: Reduced from ~10 minutes to ~2 minutes
+- **Workflow**: `.github/workflows/build-katago-base.yml`
+
+The base image is built automatically when:
+1. The E2E test job runs and the image doesn't exist
+2. Changes are pushed to the base image files
+3. Manually triggered via GitHub Actions
+
+No manual intervention is required - the CI workflow will build the base image automatically on first use.
+
 ## Future Improvements
 
 1. **Model Caching** - Cache downloaded models between CI runs
