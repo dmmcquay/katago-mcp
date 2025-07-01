@@ -126,6 +126,9 @@ jobs:
         # Build the e2e test image
         docker build -f Dockerfile.e2e -t katago-mcp-e2e .
         
+        echo "🔍 Validating Docker image..."
+        ./scripts/validate-docker-image.sh
+        
         echo "🧪 Running E2E tests in Docker container..."
         docker run --rm katago-mcp-e2e
         
