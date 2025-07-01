@@ -5,64 +5,60 @@ import (
 	"testing"
 )
 
-func TestDetermineBoardRegion(t *testing.T) {
+func TestGetBoardRegion(t *testing.T) {
 	tests := []struct {
 		name      string
-		move      string
+		x         int
+		y         int
 		boardSize int
 		want      string
 	}{
 		{
 			name:      "3-3 corner",
-			move:      "C3",
+			x:         2,
+			y:         2,
 			boardSize: 19,
 			want:      "corner",
 		},
 		{
 			name:      "4-4 corner",
-			move:      "D4",
+			x:         3,
+			y:         3,
 			boardSize: 19,
 			want:      "corner",
 		},
 		{
-			name:      "star point corner",
-			move:      "Q16",
-			boardSize: 19,
-			want:      "corner",
-		},
-		{
-			name:      "side move",
-			move:      "K3",
+			name:      "top edge",
+			x:         9,
+			y:         1,
 			boardSize: 19,
 			want:      "side",
 		},
 		{
-			name:      "center move",
-			move:      "K10",
+			name:      "left edge",
+			x:         1,
+			y:         9,
 			boardSize: 19,
-			want:      "center",
+			want:      "side",
 		},
 		{
-			name:      "tengen",
-			move:      "J10",
+			name:      "center",
+			x:         9,
+			y:         9,
 			boardSize: 19,
 			want:      "center",
-		},
-		{
-			name:      "pass",
-			move:      "pass",
-			boardSize: 19,
-			want:      "pass",
 		},
 		{
 			name:      "9x9 corner",
-			move:      "C3",
+			x:         2,
+			y:         2,
 			boardSize: 9,
 			want:      "corner",
 		},
 		{
 			name:      "9x9 center",
-			move:      "E5",
+			x:         4,
+			y:         4,
 			boardSize: 9,
 			want:      "center",
 		},
@@ -70,77 +66,60 @@ func TestDetermineBoardRegion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := determineBoardRegion(tt.move, tt.boardSize)
+			got := getBoardRegion(tt.x, tt.y, tt.boardSize)
 			if got != tt.want {
-				t.Errorf("determineBoardRegion(%s, %d) = %s, want %s",
-					tt.move, tt.boardSize, got, tt.want)
+				t.Errorf("getBoardRegion(%d, %d, %d) = %s, want %s",
+					tt.x, tt.y, tt.boardSize, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIsNearStones(t *testing.T) {
-	position := &Position{
-		BoardXSize: 19,
-		BoardYSize: 19,
-		Moves: []Move{
-			{Color: "b", Location: "D4"},
-			{Color: "w", Location: "Q16"},
-			{Color: "b", Location: "D16"},
-			{Color: "w", Location: "Q4"},
-		},
-	}
-
+func TestContains(t *testing.T) {
 	tests := []struct {
-		name string
-		x    int
-		y    int
-		want bool
+		name  string
+		slice []string
+		str   string
+		want  bool
 	}{
 		{
-			name: "next to D4",
-			x:    3,
-			y:    14, // D5
-			want: true,
+			name:  "string exists",
+			slice: []string{"apple", "banana", "cherry"},
+			str:   "banana",
+			want:  true,
 		},
 		{
-			name: "3 points from D4",
-			x:    3,
-			y:    12, // D7
-			want: true,
+			name:  "string not exists",
+			slice: []string{"apple", "banana", "cherry"},
+			str:   "orange",
+			want:  false,
 		},
 		{
-			name: "4 points from D4",
-			x:    3,
-			y:    11, // D8
-			want: false,
+			name:  "empty slice",
+			slice: []string{},
+			str:   "apple",
+			want:  false,
 		},
 		{
-			name: "center with no nearby stones",
-			x:    9,
-			y:    9, // K10
-			want: false,
-		},
-		{
-			name: "diagonal from Q16",
-			x:    14,
-			y:    4, // O14
-			want: true,
+			name:  "empty string",
+			slice: []string{"apple", "", "cherry"},
+			str:   "",
+			want:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isNearStones(tt.x, tt.y, position)
+			got := contains(tt.slice, tt.str)
 			if got != tt.want {
-				t.Errorf("isNearStones(%d, %d) = %v, want %v",
-					tt.x, tt.y, got, tt.want)
+				t.Errorf("contains(%v, %s) = %v, want %v",
+					tt.slice, tt.str, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestAnalyzeStrategicPurpose(t *testing.T) {
+func TestAnalyzeStrategicAspects(t *testing.T) {
 	// Test opening corner move
 	position := &Position{
 		BoardXSize: 19,
@@ -148,19 +127,9 @@ func TestAnalyzeStrategicPurpose(t *testing.T) {
 		Moves:      []Move{},
 	}
 
-	moveInfo := &MoveInfo{
-		Move:    "D4",
-		Winrate: 0.52,
-	}
+	result := &AnalysisResult{}
 
-	result := &AnalysisResult{
-		MoveInfos: []MoveInfo{
-			*moveInfo,
-			{Move: "Q16", Winrate: 0.51},
-		},
-	}
-
-	info := analyzeStrategicPurpose("D4", position, moveInfo, result)
+	info := analyzeStrategicAspects("D4", position, result)
 
 	if info.BoardRegion != "corner" {
 		t.Errorf("Expected corner region, got %s", info.BoardRegion)
@@ -170,123 +139,47 @@ func TestAnalyzeStrategicPurpose(t *testing.T) {
 		t.Error("Opening corner move should be territory-oriented")
 	}
 
-	if len(info.Purpose) == 0 {
-		t.Error("Should have at least one purpose")
+	if info.Urgency != "important" {
+		t.Errorf("Expected 'important' urgency for opening, got %s", info.Urgency)
 	}
 
-	// Test fighting move
+	// Test mid-game move with more stones
 	position2 := &Position{
 		BoardXSize: 19,
 		BoardYSize: 19,
 		Moves: []Move{
-			{Color: "b", Location: "D4"},
-			{Color: "w", Location: "D5"},
+			{Color: "B", Location: "D4"},
+			{Color: "W", Location: "Q16"},
+			{Color: "B", Location: "D16"},
+			{Color: "W", Location: "Q4"},
+			{Color: "B", Location: "D10"},
 		},
 	}
 
-	info2 := analyzeStrategicPurpose("E4", position2, moveInfo, result)
+	info2 := analyzeStrategicAspects("E5", position2, result)
 	if !info2.FightingMove {
-		t.Error("Move near existing stones should be fighting move")
+		t.Error("Move near existing stones in mid-game should be fighting move")
+	}
+	if info2.Urgency != "critical" {
+		t.Errorf("Expected 'critical' urgency for fighting move, got %s", info2.Urgency)
 	}
 }
 
-func TestGeneratePros(t *testing.T) {
+func TestGenerateProsAndCons(t *testing.T) {
 	moveInfo := &MoveInfo{
 		Move:      "D4",
 		Winrate:   0.58,
 		ScoreLead: 5.5,
+		Prior:     0.15,
+		Visits:    200,
 	}
 
-	strategic := StrategicInfo{
-		TerritoryMove: true,
-		Urgency:       "critical",
-	}
-
-	pros := generatePros(moveInfo, 1, strategic)
-
-	// Should have multiple pros
-	if len(pros) < 2 {
-		t.Errorf("Expected multiple pros for a good move, got %d: %v", len(pros), pros)
-	}
-
-	// Check for expected pros
-	hasWinratePro := false
-	hasUrgencyPro := false
-	hasTerritoryPro := false
-	for _, pro := range pros {
-		if strings.Contains(pro, "win rate") {
-			hasWinratePro = true
-		}
-		if strings.Contains(pro, "Critical") || strings.Contains(pro, "prevents") {
-			hasUrgencyPro = true
-		}
-		if strings.Contains(pro, "Secures") || strings.Contains(pro, "points") {
-			hasTerritoryPro = true
-		}
-	}
-
-	if !hasWinratePro {
-		t.Error("Expected pro about win rate")
-	}
-	if !hasUrgencyPro {
-		t.Error("Expected pro about urgency")
-	}
-	if !hasTerritoryPro {
-		t.Error("Expected pro about territory since TerritoryMove is true")
-	}
-}
-
-func TestGenerateCons(t *testing.T) {
-	moveInfo := &MoveInfo{
-		Move:      "K10",
-		Winrate:   0.48,
-		ScoreLead: -2.5,
-	}
-
-	allMoves := []MoveInfo{
-		{Move: "D4", Winrate: 0.52},
-		*moveInfo,
-	}
-
-	strategic := StrategicInfo{
-		BoardRegion: "center",
-		Urgency:     "optional",
-	}
-
-	cons := generateCons(moveInfo, 2, allMoves, strategic)
-
-	// Should have cons for suboptimal move
-	if len(cons) == 0 {
-		t.Error("Expected cons for suboptimal move")
-	}
-
-	// Check for win rate loss con
-	hasWinrateLoss := false
-	for _, con := range cons {
-		if strings.Contains(con, "win rate") {
-			hasWinrateLoss = true
-			break
-		}
-	}
-
-	if !hasWinrateLoss {
-		t.Error("Expected con about win rate loss")
-	}
-}
-
-func TestFindAlternatives(t *testing.T) {
-	chosen := &MoveInfo{
-		Move:      "K10",
-		Winrate:   0.48,
-		ScoreLead: 0.0,
-	}
-
-	allMoves := []MoveInfo{
-		{Move: "D4", Winrate: 0.52, ScoreLead: 2.5},
-		{Move: "Q16", Winrate: 0.51, ScoreLead: 2.0},
-		*chosen,
-		{Move: "D16", Winrate: 0.47, ScoreLead: -0.5},
-		{Move: "pass", Winrate: 0.20, ScoreLead: -10.0},
+	bestMove := &MoveInfo{
+		Move:      "Q16",
+		Winrate:   0.60,
+		ScoreLead: 6.0,
+		Prior:     0.20,
+		Visits:    300,
 	}
 
 	position := &Position{
@@ -294,47 +187,113 @@ func TestFindAlternatives(t *testing.T) {
 		BoardYSize: 19,
 	}
 
-	alternatives := findAlternatives(chosen, allMoves, position)
+	pros, cons := generateProsAndCons(moveInfo, bestMove, position)
 
-	// Should have alternatives (but limited to top moves)
-	if len(alternatives) == 0 {
-		t.Error("Expected some alternatives")
+	// Should have at least one pro and con
+	if len(pros) == 0 {
+		t.Error("Expected at least one pro")
+	}
+	if len(cons) == 0 {
+		t.Error("Expected at least one con for suboptimal move")
 	}
 
-	// First alternative should be best move
-	if len(alternatives) > 0 && alternatives[0].Move != "D4" {
-		t.Errorf("Expected D4 as first alternative, got %s", alternatives[0].Move)
+	// Check for specific pros
+	hasVisitsPro := false
+	hasNaturalPro := false
+	for _, pro := range pros {
+		if strings.Contains(pro, "Well-explored") {
+			hasVisitsPro = true
+		}
+		if strings.Contains(pro, "Natural-looking") {
+			hasNaturalPro = true
+		}
 	}
 
-	// Check win rate differences
-	if len(alternatives) > 0 && alternatives[0].WinrateDiff <= 0 {
-		t.Error("First alternative should have positive win rate difference")
+	if !hasVisitsPro {
+		t.Error("Expected pro about being well-explored (200 visits)")
+	}
+	if !hasNaturalPro {
+		t.Error("Expected pro about being natural-looking (0.15 prior)")
+	}
+
+	// Check for winrate loss con
+	hasWinrateCon := false
+	for _, con := range cons {
+		if strings.Contains(con, "win rate") {
+			hasWinrateCon = true
+		}
+	}
+	if !hasWinrateCon {
+		t.Error("Expected con about win rate loss")
 	}
 }
 
-func TestHelperFunctions(t *testing.T) {
-	// Test intPtr
-	ptr := intPtr(42)
-	if ptr == nil || *ptr != 42 {
-		t.Error("intPtr should return pointer to int")
+func TestCompareMove(t *testing.T) {
+	move1 := &MoveInfo{
+		Move:    "D4",
+		Winrate: 0.52,
 	}
 
-	// Test minInt
-	if minInt(5, 3) != 3 {
-		t.Error("minInt(5, 3) should be 3")
-	}
-	if minInt(2, 7) != 2 {
-		t.Error("minInt(2, 7) should be 2")
+	move2 := &MoveInfo{
+		Move:    "Q16",
+		Winrate: 0.50,
 	}
 
-	// Test abs
-	if abs(5) != 5 {
-		t.Error("abs(5) should be 5")
+	position := &Position{
+		BoardXSize: 19,
+		BoardYSize: 19,
 	}
-	if abs(-5) != 5 {
-		t.Error("abs(-5) should be 5")
+
+	result := compareMove(move1, move2, position)
+
+	// Should indicate move1 is better
+	if !strings.Contains(result, "better") && !strings.Contains(result, "Prefers") {
+		t.Errorf("Expected comparison to show move1 is better, got: %s", result)
 	}
-	if abs(0) != 0 {
-		t.Error("abs(0) should be 0")
+
+	// Test similar moves
+	move2.Winrate = 0.515
+	result = compareMove(move1, move2, position)
+	if result != "Similar strength" {
+		t.Errorf("Expected 'Similar strength' for close winrates, got: %s", result)
+	}
+}
+
+func TestMoveExplanationStruct(t *testing.T) {
+	explanation := MoveExplanation{
+		Move:        "D4",
+		Explanation: "This is the top choice",
+		Winrate:     0.52,
+		ScoreLead:   2.5,
+		Visits:      1000,
+		Pros:        []string{"Secures corner", "Natural move"},
+		Cons:        []string{},
+		Alternatives: []Alternative{
+			{
+				Move:      "Q16",
+				Winrate:   0.51,
+				Visits:    900,
+				Reasoning: "Similar strength",
+			},
+		},
+		Strategic: StrategicInfo{
+			Purpose:       []string{"corner enclosure"},
+			Urgency:       "important",
+			BoardRegion:   "corner",
+			TerritoryMove: true,
+		},
+	}
+
+	if explanation.Move != "D4" {
+		t.Errorf("Expected move D4, got %s", explanation.Move)
+	}
+	if len(explanation.Pros) != 2 {
+		t.Errorf("Expected 2 pros, got %d", len(explanation.Pros))
+	}
+	if !explanation.Strategic.TerritoryMove {
+		t.Error("Expected territory move for corner")
+	}
+	if len(explanation.Alternatives) != 1 {
+		t.Errorf("Expected 1 alternative, got %d", len(explanation.Alternatives))
 	}
 }

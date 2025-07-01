@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+      args:
+        # Use pre-built base image if available
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:22.04}
+    volumes:
+      # Mount source code for live updates during development
+      - ./internal:/app/internal
+      - ./e2e:/app/e2e
+      - ./scripts:/app/scripts
+    environment:
+      - KATAGO_TEST_MODEL=/katago/model.bin.gz
+      - KATAGO_TEST_CONFIG=/katago/config.cfg
+      - CGO_ENABLED=0
+    command: go test -v -tags=e2e ./e2e -timeout 300s

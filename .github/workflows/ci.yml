@@ -107,6 +107,37 @@ jobs:
         name: katago-mcp-linux-amd64
         path: katago-mcp
 
+  e2e-tests:
+    name: E2E Tests (Docker)
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download model for E2E tests
+      run: |
+        echo "📥 Downloading neural network model..."
+        mkdir -p docker/katago-artifacts
+        # Download a model from katagotraining.org (same as our download script)
+        curl -L -o docker/katago-artifacts/test-model.bin.gz \
+          https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
+    
+    - name: Build and run E2E tests in Docker
+      run: |
+        echo "🐳 Building Docker image for E2E tests (this will compile KataGo from source)..."
+        
+        # Build the e2e test image
+        docker build -f Dockerfile.e2e -t katago-mcp-e2e .
+        
+        echo "🔍 Validating Docker image..."
+        ./scripts/validate-docker-image.sh
+        
+        echo "🧪 Running E2E tests in Docker container..."
+        docker run --rm katago-mcp-e2e
+        
+        echo "✅ E2E tests completed successfully"
+
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest

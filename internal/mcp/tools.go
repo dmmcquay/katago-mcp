@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/dmmcquay/katago-mcp/internal/katago"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
@@ -56,32 +57,32 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 			mcp.Description("Include more detailed output"),
 		),
 	)
-	s.AddTool(analyzePositionTool, h.handleAnalyzePosition)
+	s.AddTool(analyzePositionTool, h.HandleAnalyzePosition)
 
 	// Register getEngineStatus tool
 	getEngineStatusTool := mcp.NewTool("getEngineStatus",
 		mcp.WithDescription("Get the status of the KataGo engine"),
 	)
-	s.AddTool(getEngineStatusTool, h.handleGetEngineStatus)
+	s.AddTool(getEngineStatusTool, h.HandleGetEngineStatus)
 
 	// Register startEngine tool
 	startEngineTool := mcp.NewTool("startEngine",
 		mcp.WithDescription("Start the KataGo engine if not already running"),
 	)
-	s.AddTool(startEngineTool, h.handleStartEngine)
+	s.AddTool(startEngineTool, h.HandleStartEngine)
 
 	// Register stopEngine tool
 	stopEngineTool := mcp.NewTool("stopEngine",
 		mcp.WithDescription("Stop the KataGo engine"),
 	)
-	s.AddTool(stopEngineTool, h.handleStopEngine)
+	s.AddTool(stopEngineTool, h.HandleStopEngine)
 
 	// Register findMistakes tool
 	findMistakesTool := mcp.NewTool("findMistakes",
-		mcp.WithDescription("Analyze a game to find mistakes and blunders"),
+		mcp.WithDescription("Analyze a game to find mistakes, blunders, and missed opportunities"),
 		mcp.WithString("sgf",
+			mcp.Description("SGF content of the game to review"),
 			mcp.Required(),
-			mcp.Description("SGF content of the game to analyze"),
 		),
 		mcp.WithNumber("blunderThreshold",
 			mcp.Description("Win rate drop threshold for blunders (default: 0.15)"),
@@ -92,52 +93,48 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 		mcp.WithNumber("inaccuracyThreshold",
 			mcp.Description("Win rate drop threshold for inaccuracies (default: 0.02)"),
 		),
-		mcp.WithBoolean("includeAnalysis",
-			mcp.Description("Include detailed move-by-move analysis"),
-		),
-		mcp.WithNumber("topMistakes",
-			mcp.Description("Limit number of mistakes to return (0 for all)"),
+		mcp.WithNumber("maxVisits",
+			mcp.Description("Maximum visits per position (default: from config)"),
 		),
 	)
-	s.AddTool(findMistakesTool, h.handleFindMistakes)
+	s.AddTool(findMistakesTool, h.HandleFindMistakes)
 
 	// Register evaluateTerritory tool
 	evaluateTerritoryTool := mcp.NewTool("evaluateTerritory",
-		mcp.WithDescription("Estimate territory control and final score"),
+		mcp.WithDescription("Evaluate territory ownership and control"),
 		mcp.WithString("sgf",
 			mcp.Description("SGF content to analyze"),
-		),
-		mcp.WithObject("position",
-			mcp.Description("Position object with rules, board size, moves, etc."),
+			mcp.Required(),
 		),
 		mcp.WithNumber("threshold",
-			mcp.Description("Ownership threshold for territory (default: 0.60)"),
+			mcp.Description("Ownership threshold (0.0-1.0, default: 0.85)"),
 		),
-		mcp.WithBoolean("includeVisualization",
-			mcp.Description("Include text visualization of territory"),
+		mcp.WithBoolean("includeEstimates",
+			mcp.Description("Include detailed point estimates"),
 		),
 	)
-	s.AddTool(evaluateTerritoryTool, h.handleEvaluateTerritory)
+	s.AddTool(evaluateTerritoryTool, h.HandleEvaluateTerritory)
 
 	// Register explainMove tool
 	explainMoveTool := mcp.NewTool("explainMove",
-		mcp.WithDescription("Get detailed explanation for why a move is good or bad"),
+		mcp.WithDescription("Get explanations for why a move is good or bad"),
 		mcp.WithString("sgf",
 			mcp.Description("SGF content of the position"),
-		),
-		mcp.WithObject("position",
-			mcp.Description("Position object with rules, board size, moves, etc."),
+			mcp.Required(),
 		),
 		mcp.WithString("move",
+			mcp.Description("Move to explain (e.g., 'D4', 'Q16', 'pass')"),
 			mcp.Required(),
-			mcp.Description("The move to explain (e.g., 'D4', 'Q16', 'pass')"),
+		),
+		mcp.WithNumber("maxVisits",
+			mcp.Description("Maximum visits for analysis"),
 		),
 	)
-	s.AddTool(explainMoveTool, h.handleExplainMove)
+	s.AddTool(explainMoveTool, h.HandleExplainMove)
 }
 
-// handleAnalyzePosition handles the analyzePosition tool.
-func (h *ToolsHandler) handleAnalyzePosition(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleAnalyzePosition handles the analyzePosition tool.
+func (h *ToolsHandler) HandleAnalyzePosition(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
 		if err := h.engine.Start(ctx); err != nil {
@@ -278,8 +275,8 @@ func (h *ToolsHandler) handleAnalyzePosition(ctx context.Context, request mcp.Ca
 	return mcp.NewToolResultText(string(resultJSON)), nil
 }
 
-// handleGetEngineStatus handles the getEngineStatus tool.
-func (h *ToolsHandler) handleGetEngineStatus(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleGetEngineStatus handles the getEngineStatus tool.
+func (h *ToolsHandler) HandleGetEngineStatus(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	status := "stopped"
 	if h.engine.IsRunning() {
 		status = "running"
@@ -289,8 +286,8 @@ func (h *ToolsHandler) handleGetEngineStatus(ctx context.Context, request mcp.Ca
 	return mcp.NewToolResultText(info), nil
 }
 
-// handleStartEngine handles the startEngine tool.
-func (h *ToolsHandler) handleStartEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleStartEngine handles the startEngine tool.
+func (h *ToolsHandler) HandleStartEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	if h.engine.IsRunning() {
 		return mcp.NewToolResultText("KataGo engine is already running"), nil
 	}
@@ -302,8 +299,8 @@ func (h *ToolsHandler) handleStartEngine(ctx context.Context, request mcp.CallTo
 	return mcp.NewToolResultText("KataGo engine started successfully"), nil
 }
 
-// handleStopEngine handles the stopEngine tool.
-func (h *ToolsHandler) handleStopEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleStopEngine handles the stopEngine tool.
+func (h *ToolsHandler) HandleStopEngine(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	if !h.engine.IsRunning() {
 		return mcp.NewToolResultText("KataGo engine is not running"), nil
 	}
@@ -315,8 +312,8 @@ func (h *ToolsHandler) handleStopEngine(ctx context.Context, request mcp.CallToo
 	return mcp.NewToolResultText("KataGo engine stopped successfully"), nil
 }
 
-// handleFindMistakes handles the findMistakes tool.
-func (h *ToolsHandler) handleFindMistakes(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleFindMistakes handles the findMistakes tool.
+func (h *ToolsHandler) HandleFindMistakes(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
 		if err := h.engine.Start(ctx); err != nil {
@@ -337,7 +334,7 @@ func (h *ToolsHandler) handleFindMistakes(ctx context.Context, request mcp.CallT
 	// Get SGF content
 	sgfVal, ok := argsMap["sgf"]
 	if !ok {
-		return nil, fmt.Errorf("missing required parameter: sgf")
+		return nil, fmt.Errorf("missing required parameter 'sgf'")
 	}
 	sgf, ok := sgfVal.(string)
 	if !ok {
@@ -357,53 +354,66 @@ func (h *ToolsHandler) handleFindMistakes(ctx context.Context, request mcp.CallT
 			thresholds.Mistake = threshold
 		}
 	}
+
 	if val, ok := argsMap["inaccuracyThreshold"]; ok {
 		if threshold, ok := val.(float64); ok {
 			thresholds.Inaccuracy = threshold
 		}
 	}
 
+	if val, ok := argsMap["maxVisits"]; ok {
+		if visits, ok := val.(float64); ok {
+			thresholds.MinimumVisits = int(visits)
+		}
+	}
+
 	// Review the game
-	review, err := h.engine.ReviewGame(ctx, sgf, &thresholds)
+	review, err := h.engine.ReviewGame(ctx, sgf, thresholds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to review game: %w", err)
 	}
 
-	// Check if we should include full analysis
-	includeAnalysis := false
-	if val, ok := argsMap["includeAnalysis"]; ok {
-		includeAnalysis, _ = val.(bool)
+	// Format the result
+	var sb strings.Builder
+	sb.WriteString("# Game Review\n\n")
+
+	// Summary
+	sb.WriteString("## Summary\n")
+	sb.WriteString(fmt.Sprintf("- Total moves: %d\n", review.Summary.TotalMoves))
+	sb.WriteString(fmt.Sprintf("- Black accuracy: %.1f%%\n", review.Summary.BlackAccuracy))
+	sb.WriteString(fmt.Sprintf("- White accuracy: %.1f%%\n", review.Summary.WhiteAccuracy))
+	sb.WriteString(fmt.Sprintf("- Black mistakes/blunders: %d/%d\n",
+		review.Summary.BlackMistakes, review.Summary.BlackBlunders))
+	sb.WriteString(fmt.Sprintf("- White mistakes/blunders: %d/%d\n",
+		review.Summary.WhiteMistakes, review.Summary.WhiteBlunders))
+
+	if review.Summary.EstimatedLevel != "" {
+		sb.WriteString(fmt.Sprintf("- Estimated level: %s\n", review.Summary.EstimatedLevel))
 	}
 
-	// Limit mistakes if requested
-	mistakes := review.Mistakes
-	if val, ok := argsMap["topMistakes"]; ok {
-		if limit, ok := val.(float64); ok && limit > 0 {
-			mistakes = katago.FindTopMistakes(review, int(limit))
+	// Mistakes
+	if len(review.Mistakes) > 0 {
+		sb.WriteString("\n## Mistakes Found\n\n")
+		for i := range review.Mistakes {
+			mistake := &review.Mistakes[i]
+			sb.WriteString(fmt.Sprintf("### Move %d (%s)\n", mistake.MoveNumber, mistake.Color))
+			sb.WriteString(fmt.Sprintf("- **Category**: %s\n", mistake.Category))
+			sb.WriteString(fmt.Sprintf("- **Played**: %s (%.1f%% WR)\n",
+				mistake.PlayedMove, mistake.PlayedWR*100))
+			sb.WriteString(fmt.Sprintf("- **Better**: %s (%.1f%% WR)\n",
+				mistake.BestMove, mistake.BestWR*100))
+			sb.WriteString(fmt.Sprintf("- **Win rate drop**: %.1f%%\n", mistake.WinrateDrop*100))
+			sb.WriteString(fmt.Sprintf("- %s\n\n", mistake.Explanation))
 		}
+	} else {
+		sb.WriteString("\n## No significant mistakes found!\n")
 	}
 
-	// Prepare result
-	result := map[string]interface{}{
-		"mistakes": mistakes,
-		"summary":  review.Summary,
-	}
-
-	if includeAnalysis {
-		result["moveAnalyses"] = review.MoveAnalyses
-	}
-
-	// Format as JSON
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to format result: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	return mcp.NewToolResultText(sb.String()), nil
 }
 
-// handleEvaluateTerritory handles the evaluateTerritory tool.
-func (h *ToolsHandler) handleEvaluateTerritory(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleEvaluateTerritory handles the evaluateTerritory tool.
+func (h *ToolsHandler) HandleEvaluateTerritory(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
 		if err := h.engine.Start(ctx); err != nil {
@@ -421,40 +431,27 @@ func (h *ToolsHandler) handleEvaluateTerritory(ctx context.Context, request mcp.
 		return nil, fmt.Errorf("invalid arguments format")
 	}
 
-	// Get position (from SGF or position object)
-	var position *katago.Position
+	// Get SGF content
+	sgfVal, ok := argsMap["sgf"]
+	if !ok {
+		return nil, fmt.Errorf("missing required parameter 'sgf'")
+	}
+	sgf, ok := sgfVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("sgf must be a string")
+	}
 
-	if sgfVal, ok := argsMap["sgf"]; ok {
-		sgf, ok := sgfVal.(string)
-		if !ok {
-			return nil, fmt.Errorf("sgf must be a string")
-		}
-
-		parser := katago.NewSGFParser(sgf)
-		pos, err := parser.Parse()
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse SGF: %w", err)
-		}
-		position = pos
-	} else if posVal, ok := argsMap["position"]; ok {
-		posData, err := json.Marshal(posVal)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal position: %w", err)
-		}
-
-		var pos katago.Position
-		if err := json.Unmarshal(posData, &pos); err != nil {
-			return nil, fmt.Errorf("failed to parse position: %w", err)
-		}
-		position = &pos
-	} else {
-		return nil, fmt.Errorf("must provide either 'sgf' or 'position' parameter")
+	// Parse SGF
+	parser := katago.NewSGFParser(sgf)
+	position, err := parser.Parse()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SGF: %w", err)
 	}
 
 	// Get threshold
-	threshold := 0.60
+	threshold := 0.85
 	if val, ok := argsMap["threshold"]; ok {
-		if t, ok := val.(float64); ok {
+		if t, ok := val.(float64); ok && t > 0 && t <= 1 {
 			threshold = t
 		}
 	}
@@ -465,29 +462,31 @@ func (h *ToolsHandler) handleEvaluateTerritory(ctx context.Context, request mcp.
 		return nil, fmt.Errorf("failed to estimate territory: %w", err)
 	}
 
-	// Check if visualization requested
-	includeViz := false
-	if val, ok := argsMap["includeVisualization"]; ok {
-		includeViz, _ = val.(bool)
+	// Check if detailed estimates requested
+	includeEstimates := false
+	if val, ok := argsMap["includeEstimates"]; ok {
+		if b, ok := val.(bool); ok {
+			includeEstimates = b
+		}
 	}
 
-	if includeViz {
-		// Return text visualization
-		viz := katago.GetTerritoryVisualization(estimate)
-		return mcp.NewToolResultText(viz), nil
+	// Format result
+	if includeEstimates {
+		// Return JSON with full details
+		resultJSON, err := json.MarshalIndent(estimate, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to format result: %w", err)
+		}
+		return mcp.NewToolResultText(string(resultJSON)), nil
 	}
 
-	// Return JSON result
-	resultJSON, err := json.MarshalIndent(estimate, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to format result: %w", err)
-	}
-
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	// Return visualization
+	viz := katago.GetTerritoryVisualization(estimate)
+	return mcp.NewToolResultText(viz), nil
 }
 
-// handleExplainMove handles the explainMove tool.
-func (h *ToolsHandler) handleExplainMove(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// HandleExplainMove handles the explainMove tool.
+func (h *ToolsHandler) HandleExplainMove(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Ensure engine is running
 	if !h.engine.IsRunning() {
 		if err := h.engine.Start(ctx); err != nil {
@@ -505,44 +504,31 @@ func (h *ToolsHandler) handleExplainMove(ctx context.Context, request mcp.CallTo
 		return nil, fmt.Errorf("invalid arguments format")
 	}
 
+	// Get SGF content
+	sgfVal, ok := argsMap["sgf"]
+	if !ok {
+		return nil, fmt.Errorf("missing required parameter 'sgf'")
+	}
+	sgf, ok := sgfVal.(string)
+	if !ok {
+		return nil, fmt.Errorf("sgf must be a string")
+	}
+
 	// Get move to explain
 	moveVal, ok := argsMap["move"]
 	if !ok {
-		return nil, fmt.Errorf("missing required parameter: move")
+		return nil, fmt.Errorf("missing required parameter 'move'")
 	}
 	move, ok := moveVal.(string)
 	if !ok {
 		return nil, fmt.Errorf("move must be a string")
 	}
 
-	// Get position (from SGF or position object)
-	var position *katago.Position
-
-	if sgfVal, ok := argsMap["sgf"]; ok {
-		sgf, ok := sgfVal.(string)
-		if !ok {
-			return nil, fmt.Errorf("sgf must be a string")
-		}
-
-		parser := katago.NewSGFParser(sgf)
-		pos, err := parser.Parse()
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse SGF: %w", err)
-		}
-		position = pos
-	} else if posVal, ok := argsMap["position"]; ok {
-		posData, err := json.Marshal(posVal)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal position: %w", err)
-		}
-
-		var pos katago.Position
-		if err := json.Unmarshal(posData, &pos); err != nil {
-			return nil, fmt.Errorf("failed to parse position: %w", err)
-		}
-		position = &pos
-	} else {
-		return nil, fmt.Errorf("must provide either 'sgf' or 'position' parameter")
+	// Parse SGF
+	parser := katago.NewSGFParser(sgf)
+	position, err := parser.Parse()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SGF: %w", err)
 	}
 
 	// Get explanation
@@ -552,10 +538,47 @@ func (h *ToolsHandler) handleExplainMove(ctx context.Context, request mcp.CallTo
 	}
 
 	// Format result
-	resultJSON, err := json.MarshalIndent(explanation, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to format result: %w", err)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("# Move Explanation: %s\n\n", move))
+	sb.WriteString(fmt.Sprintf("%s\n\n", explanation.Explanation))
+
+	// Stats
+	sb.WriteString("## Statistics\n")
+	sb.WriteString(fmt.Sprintf("- Win rate: %.1f%%\n", explanation.Winrate*100))
+	sb.WriteString(fmt.Sprintf("- Score lead: %.1f points\n", explanation.ScoreLead))
+	sb.WriteString(fmt.Sprintf("- Engine visits: %d\n\n", explanation.Visits))
+
+	// Strategic info
+	sb.WriteString("## Strategic Analysis\n")
+	sb.WriteString(fmt.Sprintf("- Board region: %s\n", explanation.Strategic.BoardRegion))
+	sb.WriteString(fmt.Sprintf("- Urgency: %s\n", explanation.Strategic.Urgency))
+	if len(explanation.Strategic.Purpose) > 0 {
+		sb.WriteString(fmt.Sprintf("- Purpose: %s\n", strings.Join(explanation.Strategic.Purpose, ", ")))
 	}
 
-	return mcp.NewToolResultText(string(resultJSON)), nil
+	// Pros and cons
+	if len(explanation.Pros) > 0 {
+		sb.WriteString("\n## Pros\n")
+		for _, pro := range explanation.Pros {
+			sb.WriteString(fmt.Sprintf("- %s\n", pro))
+		}
+	}
+
+	if len(explanation.Cons) > 0 {
+		sb.WriteString("\n## Cons\n")
+		for _, con := range explanation.Cons {
+			sb.WriteString(fmt.Sprintf("- %s\n", con))
+		}
+	}
+
+	// Alternatives
+	if len(explanation.Alternatives) > 0 {
+		sb.WriteString("\n## Better Alternatives\n")
+		for _, alt := range explanation.Alternatives {
+			sb.WriteString(fmt.Sprintf("- **%s** (%.1f%% WR): %s\n",
+				alt.Move, alt.Winrate*100, alt.Reasoning))
+		}
+	}
+
+	return mcp.NewToolResultText(sb.String()), nil
 }

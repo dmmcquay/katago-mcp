@@ -1,4 +1,4 @@
-.PHONY: all build test lint fmt clean help ci pre-commit pr-ready security test-coverage
+.PHONY: all build test lint fmt clean help ci pre-commit pr-ready security test-coverage e2e-test setup-e2e
 
 # Default target
 all: build
@@ -19,6 +19,21 @@ test-coverage:
 	@go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 	@go tool cover -html=coverage.txt -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+# Setup e2e test environment
+setup-e2e:
+	@echo "Setting up e2e test environment..."
+	@chmod +x scripts/setup-katago-test.sh
+	@./scripts/setup-katago-test.sh
+
+# Run e2e tests with KataGo
+e2e-test: setup-e2e
+	@echo "Running e2e tests..."
+	@if [ -z "$$KATAGO_TEST_MODEL" ] || [ -z "$$KATAGO_TEST_CONFIG" ]; then \
+		echo "Setting up test environment..."; \
+		eval "$$(./scripts/setup-katago-test.sh | tail -2)"; \
+	fi; \
+	go test -tags=e2e ./e2e/... -v
 
 # Run linter
 lint:
@@ -77,6 +92,8 @@ help:
 	@echo "  build        - Build the katago-mcp binary"
 	@echo "  test         - Run tests with race detection"
 	@echo "  test-coverage- Run tests and generate coverage report"
+	@echo "  e2e-test     - Run end-to-end tests with real KataGo"
+	@echo "  setup-e2e    - Setup e2e test environment"
 	@echo "  lint         - Run golangci-lint"
 	@echo "  fmt          - Format code with go fmt"
 	@echo "  security     - Run security scan with Trivy"

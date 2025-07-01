@@ -32,11 +32,11 @@ type AnalysisResult struct {
 	// Root position info
 	RootInfo RootInfo `json:"rootInfo"`
 
-	// Policy prior (if requested)
-	Policy map[string]float64 `json:"policy,omitempty"`
+	// Policy prior (if requested) - neural network's move probabilities
+	Policy []float64 `json:"policy,omitempty"`
 
 	// Ownership map (if requested)
-	Ownership [][]float64 `json:"ownership,omitempty"`
+	Ownership []float64 `json:"ownership,omitempty"`
 
 	// Move-specific ownership (if requested)
 	MovesOwnership map[string][][]float64 `json:"movesOwnership,omitempty"`
@@ -49,9 +49,8 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		return nil, fmt.Errorf("invalid position: %w", err)
 	}
 
-	// Build query
+	// Build query - analysis engine doesn't use "action" field
 	query := map[string]interface{}{
-		"action":                "analyze",
 		"includePolicy":         req.IncludePolicy,
 		"includeOwnership":      req.IncludeOwnership,
 		"includeMovesOwnership": req.IncludeMovesOwnership,
@@ -76,21 +75,19 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		query["initialStones"] = stones
 	}
 
-	// Add moves
-	if len(req.Position.Moves) > 0 {
-		moves := make([][]interface{}, len(req.Position.Moves))
-		for i, move := range req.Position.Moves {
-			if move.Location == "" {
-				moves[i] = []interface{}{move.Color, "pass"}
-			} else {
-				moves[i] = []interface{}{move.Color, move.Location}
-			}
+	// Add moves - KataGo requires a moves array even if empty
+	moves := make([][]interface{}, len(req.Position.Moves))
+	for i, move := range req.Position.Moves {
+		if move.Location == "" {
+			moves[i] = []interface{}{move.Color, "pass"}
+		} else {
+			moves[i] = []interface{}{move.Color, move.Location}
 		}
-		query["moves"] = moves
 	}
+	query["moves"] = moves
 
-	// Add initial player
-	if req.Position.InitialPlayer != "" {
+	// Add initial player only if there are moves
+	if req.Position.InitialPlayer != "" && len(req.Position.Moves) > 0 {
 		query["initialPlayer"] = req.Position.InitialPlayer
 	}
 
@@ -124,6 +121,19 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		return nil, err
 	}
 
+	// Check for error in response
+	if resp.Error != nil {
+		switch v := resp.Error.(type) {
+		case string:
+			return nil, fmt.Errorf("KataGo error: %s", v)
+		case map[string]interface{}:
+			if msg, ok := v["message"].(string); ok {
+				return nil, fmt.Errorf("KataGo error: %s", msg)
+			}
+		}
+		return nil, fmt.Errorf("KataGo error: %v", resp.Error)
+	}
+
 	// Convert response to result
 	result := &AnalysisResult{
 		MoveInfos: resp.MoveInfos,
@@ -133,14 +143,10 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 	// Extract additional data from raw response
 	if req.IncludePolicy {
 		if policyData, ok := resp.Raw["policy"].([]interface{}); ok {
-			result.Policy = make(map[string]float64)
-			for _, item := range policyData {
-				if arr, ok := item.([]interface{}); ok && len(arr) == 2 {
-					if move, ok := arr[0].(string); ok {
-						if value, ok := arr[1].(float64); ok {
-							result.Policy[move] = value
-						}
-					}
+			result.Policy = make([]float64, len(policyData))
+			for i, item := range policyData {
+				if val, ok := item.(float64); ok {
+					result.Policy[i] = val
 				}
 			}
 		}
@@ -148,15 +154,10 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 
 	if req.IncludeOwnership {
 		if ownershipData, ok := resp.Raw["ownership"].([]interface{}); ok {
-			result.Ownership = make([][]float64, len(ownershipData))
-			for i, row := range ownershipData {
-				if rowData, ok := row.([]interface{}); ok {
-					result.Ownership[i] = make([]float64, len(rowData))
-					for j, val := range rowData {
-						if v, ok := val.(float64); ok {
-							result.Ownership[i][j] = v
-						}
-					}
+			result.Ownership = make([]float64, len(ownershipData))
+			for i, val := range ownershipData {
+				if v, ok := val.(float64); ok {
+					result.Ownership[i] = v
 				}
 			}
 		}
@@ -253,29 +254,10 @@ func FormatAnalysisResult(result *AnalysisResult, verbose bool) string {
 	// Policy priors
 	if len(result.Policy) > 0 && verbose {
 		sb.WriteString("\n=== Policy Network ===\n")
-		// Sort by policy value
-		type policyMove struct {
-			move  string
-			value float64
-		}
-		policies := make([]policyMove, 0, len(result.Policy))
-		for move, value := range result.Policy {
-			policies = append(policies, policyMove{move, value})
-		}
-		// Simple bubble sort
-		for i := 0; i < len(policies); i++ {
-			for j := i + 1; j < len(policies); j++ {
-				if policies[j].value > policies[i].value {
-					policies[i], policies[j] = policies[j], policies[i]
-				}
-			}
-		}
-		for i, p := range policies {
-			if i >= 10 {
-				break
-			}
-			sb.WriteString(fmt.Sprintf("%-4s %.1f%%\n", p.move, p.value*100))
-		}
+		sb.WriteString("(Raw policy data available as flat array)\n")
+		// The policy is a flat array: boardYSize * boardXSize + 1
+		// Last element is pass probability
+		// TODO: Decode policy array to move coordinates
 	}
 
 	return sb.String()

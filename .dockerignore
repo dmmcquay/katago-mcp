@@ -1,0 +1,37 @@
+# Git files
+.git
+.gitignore
+
+# Build artifacts
+katago-mcp
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# Local test files
+testdata/
+test-fixtures/
+
+# Binary releases
+dist/
+release/

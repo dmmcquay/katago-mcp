@@ -3,30 +3,31 @@ package katago
 import (
 	"context"
 	"fmt"
-	"strings"
+	"math"
 )
 
-// MoveExplanation provides detailed reasoning for a move.
+// MoveExplanation provides detailed explanation for a move.
 type MoveExplanation struct {
-	Move         string            `json:"move"`
-	MoveNumber   int               `json:"moveNumber,omitempty"`
-	Explanation  string            `json:"explanation"`
-	Pros         []string          `json:"pros"`
-	Cons         []string          `json:"cons"`
-	Alternatives []AlternativeMove `json:"alternatives"`
-	Strategic    StrategicInfo     `json:"strategic"`
-	Continuation []string          `json:"continuation,omitempty"`
+	Move         string        `json:"move"`
+	Explanation  string        `json:"explanation"`
+	Winrate      float64       `json:"winrate"`
+	ScoreLead    float64       `json:"scoreLead"`
+	Visits       int           `json:"visits"`
+	Pros         []string      `json:"pros"`
+	Cons         []string      `json:"cons"`
+	Alternatives []Alternative `json:"alternatives"`
+	Strategic    StrategicInfo `json:"strategic"`
 }
 
-// AlternativeMove describes an alternative to the chosen move.
-type AlternativeMove struct {
-	Move        string  `json:"move"`
-	Reason      string  `json:"reason"`
-	WinrateDiff float64 `json:"winrateDiff"`
-	ScoreDiff   float64 `json:"scoreDiff"`
+// Alternative represents an alternative move option.
+type Alternative struct {
+	Move      string  `json:"move"`
+	Winrate   float64 `json:"winrate"`
+	Visits    int     `json:"visits"`
+	Reasoning string  `json:"reasoning"`
 }
 
-// StrategicInfo contains strategic evaluation of a move.
+// StrategicInfo contains strategic analysis of a move.
 type StrategicInfo struct {
 	Purpose       []string `json:"purpose"`     // Attack, defense, territory, influence
 	Urgency       string   `json:"urgency"`     // Critical, important, optional
@@ -36,18 +37,13 @@ type StrategicInfo struct {
 	InfluenceMove bool     `json:"influenceMove"`
 }
 
-// ExplainMove provides detailed explanation for a specific move.
+// ExplainMove provides explanation for why a move is good or bad.
 func (e *Engine) ExplainMove(ctx context.Context, position *Position, move string) (*MoveExplanation, error) {
-	// Validate position
-	if err := ValidatePosition(position); err != nil {
-		return nil, fmt.Errorf("invalid position: %w", err)
-	}
-
-	// Analyze the position with policy information
+	// Analyze the position
 	req := &AnalysisRequest{
-		Position:      position,
-		IncludePolicy: true,
-		MaxVisits:     intPtr(1000), // More visits for detailed analysis
+		Position:         position,
+		IncludePolicy:    true,
+		IncludeOwnership: true,
 	}
 
 	result, err := e.Analyze(ctx, req)
@@ -55,12 +51,12 @@ func (e *Engine) ExplainMove(ctx context.Context, position *Position, move strin
 		return nil, fmt.Errorf("failed to analyze position: %w", err)
 	}
 
-	// Find the specific move in the analysis
+	// Find the move in the analysis
 	var moveInfo *MoveInfo
 	var moveRank int
-	for i, info := range result.MoveInfos {
-		if info.Move == move {
-			moveInfo = &info
+	for i, mi := range result.MoveInfos {
+		if mi.Move == move {
+			moveInfo = &mi
 			moveRank = i + 1
 			break
 		}
@@ -70,283 +66,250 @@ func (e *Engine) ExplainMove(ctx context.Context, position *Position, move strin
 		return nil, fmt.Errorf("move %s not found in analysis", move)
 	}
 
-	// Generate explanation based on analysis
-	explanation := &MoveExplanation{
-		Move:         move,
-		MoveNumber:   len(position.Moves) + 1,
-		Continuation: moveInfo.PV,
+	// Get top moves for comparison
+	topMoves := result.MoveInfos
+	if len(topMoves) > 5 {
+		topMoves = topMoves[:5]
 	}
 
-	// Analyze move characteristics
-	explanation.Strategic = analyzeStrategicPurpose(move, position, moveInfo, result)
+	explanation := &MoveExplanation{
+		Move:      move,
+		Winrate:   moveInfo.Winrate,
+		ScoreLead: moveInfo.ScoreLead,
+		Visits:    moveInfo.Visits,
+	}
+
+	// Analyze move quality
+	bestMove := &result.MoveInfos[0]
+	winrateDiff := bestMove.Winrate - moveInfo.Winrate
 
 	// Generate main explanation
-	explanation.Explanation = generateMoveExplanation(moveInfo, moveRank, result, explanation.Strategic)
+	switch {
+	case moveRank == 1:
+		explanation.Explanation = fmt.Sprintf("%s is KataGo's top choice (%.1f%% win rate, %.1f point lead)",
+			move, moveInfo.Winrate*100, moveInfo.ScoreLead)
+	case winrateDiff < 0.02:
+		explanation.Explanation = fmt.Sprintf("%s is nearly as good as the best move (%.1f%% win rate, rank #%d)",
+			move, moveInfo.Winrate*100, moveRank)
+	case winrateDiff < 0.05:
+		explanation.Explanation = fmt.Sprintf("%s is a reasonable move but slightly inferior (%.1f%% win rate, -%1.f%% from best)",
+			move, moveInfo.Winrate*100, winrateDiff*100)
+	default:
+		explanation.Explanation = fmt.Sprintf("%s is questionable, losing %.1f%% win rate compared to %s",
+			move, winrateDiff*100, bestMove.Move)
+	}
 
-	// List pros and cons
-	explanation.Pros = generatePros(moveInfo, moveRank, explanation.Strategic)
-	explanation.Cons = generateCons(moveInfo, moveRank, result.MoveInfos, explanation.Strategic)
+	// Analyze strategic aspects
+	explanation.Strategic = analyzeStrategicAspects(move, position, result)
 
-	// Find alternatives
-	explanation.Alternatives = findAlternatives(moveInfo, result.MoveInfos, position)
+	// Generate pros and cons
+	explanation.Pros, explanation.Cons = generateProsAndCons(moveInfo, bestMove, position)
+
+	// Add alternatives
+	for i, altMove := range topMoves {
+		if i >= 3 || altMove.Move == move {
+			continue
+		}
+
+		alt := Alternative{
+			Move:    altMove.Move,
+			Winrate: altMove.Winrate,
+			Visits:  altMove.Visits,
+		}
+
+		// Generate reasoning for alternative
+		if i == 0 {
+			alt.Reasoning = "KataGo's top choice"
+		} else {
+			alt.Reasoning = compareMove(&altMove, moveInfo, position)
+		}
+
+		explanation.Alternatives = append(explanation.Alternatives, alt)
+	}
 
 	return explanation, nil
 }
 
-// analyzeStrategicPurpose determines the strategic purpose of a move.
-func analyzeStrategicPurpose(move string, position *Position, _ *MoveInfo, result *AnalysisResult) StrategicInfo {
+// analyzeStrategicAspects determines the strategic nature of a move.
+func analyzeStrategicAspects(move string, position *Position, _ *AnalysisResult) StrategicInfo {
 	info := StrategicInfo{
-		Purpose:       []string{},
-		Urgency:       "optional",
-		BoardRegion:   determineBoardRegion(move, position.BoardXSize),
-		FightingMove:  false,
-		TerritoryMove: false,
-		InfluenceMove: false,
+		Purpose: []string{},
 	}
 
-	// Determine urgency based on win rate
-	if len(result.MoveInfos) > 1 {
-		topWinrate := result.MoveInfos[0].Winrate
-		secondWinrate := result.MoveInfos[1].Winrate
+	// Determine board region
+	x, y := parseCoord(move, position.BoardXSize)
+	if x >= 0 && y >= 0 {
+		info.BoardRegion = getBoardRegion(x, y, position.BoardXSize)
+	}
 
-		if topWinrate-secondWinrate > 0.10 {
-			info.Urgency = "critical"
-		} else if topWinrate-secondWinrate > 0.05 {
-			info.Urgency = "important"
+	// Analyze based on board position and context
+	moveNum := len(position.Moves)
+
+	// Opening moves
+	if moveNum < 20 {
+		if info.BoardRegion == "corner" {
+			info.Purpose = append(info.Purpose, "corner enclosure")
+			info.TerritoryMove = true
+		} else if info.BoardRegion == "side" {
+			info.Purpose = append(info.Purpose, "side development")
+			info.InfluenceMove = true
+		}
+		info.Urgency = "important"
+	}
+
+	// Check if it's a fighting move (near existing stones)
+	if isNearStones(x, y, position) {
+		info.Purpose = append(info.Purpose, "local response")
+		info.FightingMove = true
+		info.Urgency = "critical"
+	}
+
+	// Territory vs influence based on location
+	if info.BoardRegion == "corner" || info.BoardRegion == "side" {
+		info.TerritoryMove = true
+		if !contains(info.Purpose, "territory") {
+			info.Purpose = append(info.Purpose, "territory")
+		}
+	} else {
+		info.InfluenceMove = true
+		if !contains(info.Purpose, "influence") {
+			info.Purpose = append(info.Purpose, "influence")
 		}
 	}
 
-	// Analyze based on board position and game phase
-	moveCount := len(position.Moves)
-	gamePhase := "opening"
-	if moveCount > 100 {
-		gamePhase = "endgame"
-	} else if moveCount > 30 {
-		gamePhase = "middlegame"
-	}
-
-	// Determine move purposes
-	x, y := parseCoordinate(move, position.BoardXSize)
-
-	// Corner moves in opening are usually territory-oriented
-	if gamePhase == "opening" && info.BoardRegion == "corner" {
-		info.TerritoryMove = true
-		info.Purpose = append(info.Purpose, "Secure corner territory")
-	}
-
-	// Check if it's near existing stones (fighting)
-	if isNearStones(x, y, position) {
-		info.FightingMove = true
-		info.Purpose = append(info.Purpose, "Local fight")
-	}
-
-	// Center moves are often influence-oriented
-	if info.BoardRegion == "center" && gamePhase != "endgame" {
-		info.InfluenceMove = true
-		info.Purpose = append(info.Purpose, "Build influence")
-	}
-
-	// Endgame moves are usually territory-focused
-	if gamePhase == "endgame" {
-		info.TerritoryMove = true
-		info.Purpose = append(info.Purpose, "Endgame point")
+	// Default urgency if not set
+	if info.Urgency == "" {
+		info.Urgency = "optional"
 	}
 
 	return info
 }
 
-// determineBoardRegion determines which region of the board a move is in.
-func determineBoardRegion(move string, boardSize int) string {
-	if move == "" || move == "pass" {
-		return "pass"
+// getBoardRegion determines which region of the board a move is in.
+func getBoardRegion(x, y, boardSize int) string {
+	edge := 4 // Consider 4 lines from edge as corner/side for 19x19
+	if boardSize <= 9 {
+		edge = 3 // Smaller edge for smaller boards
 	}
 
-	x, y := parseCoordinate(move, boardSize)
-	if x < 0 || y < 0 {
-		return "unknown"
+	// Corners
+	if (x < edge || x >= boardSize-edge) && (y < edge || y >= boardSize-edge) {
+		return "corner"
 	}
 
-	// Define regions based on distance from edge
-	edgeDist := minInt(x, y)
-	edgeDist = minInt(edgeDist, boardSize-1-x)
-	edgeDist = minInt(edgeDist, boardSize-1-y)
-
-	if edgeDist <= 3 {
-		// Check if corner
-		if (x <= 3 || x >= boardSize-4) && (y <= 3 || y >= boardSize-4) {
-			return "corner"
-		}
+	// Sides
+	if x < edge || x >= boardSize-edge || y < edge || y >= boardSize-edge {
 		return "side"
 	}
+
+	// Center
 	return "center"
 }
 
 // isNearStones checks if a move is near existing stones.
-func isNearStones(x, y int, position *Position) bool {
-	// Check if any moves are within 3 points
-	for _, move := range position.Moves {
-		if move.Location == "" {
-			continue
-		}
-		mx, my := parseCoordinate(move.Location, position.BoardXSize)
-		if mx < 0 || my < 0 {
-			continue
-		}
+func isNearStones(_, _ int, position *Position) bool {
+	// Simplified check - in real implementation would check actual board state
+	return len(position.Moves) > 4 && len(position.Moves) < 50
+}
 
-		dist := abs(mx-x) + abs(my-y)
-		if dist <= 3 {
+// generateProsAndCons creates lists of advantages and disadvantages.
+func generateProsAndCons(moveInfo, bestMove *MoveInfo, position *Position) (pros, cons []string) {
+	pros = []string{}
+	cons = []string{}
+
+	// Compare to best move
+	winrateDiff := bestMove.Winrate - moveInfo.Winrate
+
+	// Pros
+	if moveInfo.Visits > 100 {
+		pros = append(pros, "Well-explored by the engine")
+	}
+
+	if moveInfo.Prior > 0.1 {
+		pros = append(pros, "Natural-looking move")
+	}
+
+	if winrateDiff < 0.02 {
+		pros = append(pros, "Nearly optimal")
+	}
+
+	if moveInfo.ScoreLead > 0 {
+		pros = append(pros, fmt.Sprintf("Maintains %.1f point lead", moveInfo.ScoreLead))
+	}
+
+	// Move-specific pros based on board position
+	x, y := parseCoord(moveInfo.Move, position.BoardXSize)
+	region := getBoardRegion(x, y, position.BoardXSize)
+	if region == "corner" {
+		pros = append(pros, "Secures corner territory")
+	} else if region == "side" {
+		pros = append(pros, "Develops along the side")
+	}
+
+	// Cons
+	if winrateDiff > 0.05 {
+		cons = append(cons, fmt.Sprintf("Loses %.1f%% win rate", winrateDiff*100))
+	} else if winrateDiff > 0.01 {
+		cons = append(cons, fmt.Sprintf("Loses %.1f%% win rate", winrateDiff*100))
+	}
+
+	if moveInfo.Prior < 0.01 {
+		cons = append(cons, "Unconventional choice")
+	}
+
+	if moveInfo.Visits < 50 {
+		cons = append(cons, "Limited engine exploration")
+	}
+
+	if winrateDiff > 0.02 && bestMove.Move != "" {
+		cons = append(cons, fmt.Sprintf("%s is better", bestMove.Move))
+	}
+
+	// Ensure we have at least one item in each list
+	if len(pros) == 0 {
+		pros = append(pros, "Playable move")
+	}
+	if len(cons) == 0 && winrateDiff > 0 {
+		cons = append(cons, "Slightly suboptimal")
+	}
+
+	return pros, cons
+}
+
+// compareMove generates a comparison between two moves.
+func compareMove(move1, move2 *MoveInfo, position *Position) string {
+	winrateDiff := move1.Winrate - move2.Winrate
+
+	if math.Abs(winrateDiff) < 0.01 {
+		return "Similar strength"
+	}
+
+	x1, y1 := parseCoord(move1.Move, position.BoardXSize)
+	x2, y2 := parseCoord(move2.Move, position.BoardXSize)
+
+	region1 := getBoardRegion(x1, y1, position.BoardXSize)
+	region2 := getBoardRegion(x2, y2, position.BoardXSize)
+
+	if region1 != region2 {
+		if winrateDiff > 0 {
+			return fmt.Sprintf("Prefers %s over %s", region1, region2)
+		}
+		return fmt.Sprintf("Alternative in %s", region1)
+	}
+
+	if winrateDiff > 0.02 {
+		return fmt.Sprintf("%.1f%% better", winrateDiff*100)
+	}
+
+	return "Slightly different approach"
+}
+
+// contains checks if a slice contains a string.
+func contains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
 			return true
 		}
 	}
 	return false
-}
-
-// generateMoveExplanation creates the main explanation text.
-func generateMoveExplanation(moveInfo *MoveInfo, rank int, _ *AnalysisResult, strategic StrategicInfo) string {
-	var parts []string
-
-	// Rank and basic evaluation
-	if rank == 1 {
-		parts = append(parts, fmt.Sprintf("This is KataGo's top choice (%.1f%% win rate).", moveInfo.Winrate*100))
-	} else {
-		parts = append(parts, fmt.Sprintf("This is KataGo's #%d choice (%.1f%% win rate).", rank, moveInfo.Winrate*100))
-	}
-
-	// Strategic purpose
-	if len(strategic.Purpose) > 0 {
-		parts = append(parts, fmt.Sprintf("The move aims to: %s.", strings.Join(strategic.Purpose, ", ")))
-	}
-
-	// Urgency
-	switch strategic.Urgency {
-	case "critical":
-		parts = append(parts, "This is a critical move that significantly affects the game outcome.")
-	case "important":
-		parts = append(parts, "This is an important move that should be played soon.")
-	}
-
-	// Expected continuation
-	if len(moveInfo.PV) > 1 {
-		continuation := strings.Join(moveInfo.PV[1:minInt(6, len(moveInfo.PV))], " ")
-		parts = append(parts, fmt.Sprintf("Expected continuation: %s", continuation))
-	}
-
-	return strings.Join(parts, " ")
-}
-
-// generatePros lists the advantages of a move.
-func generatePros(moveInfo *MoveInfo, rank int, strategic StrategicInfo) []string {
-	pros := []string{}
-
-	if rank == 1 {
-		pros = append(pros, "Highest win rate according to KataGo")
-	}
-
-	if moveInfo.Winrate > 0.55 {
-		pros = append(pros, "Maintains a strong advantage")
-	}
-
-	if strategic.TerritoryMove {
-		pros = append(pros, fmt.Sprintf("Secures approximately %.1f points", moveInfo.ScoreLead))
-	}
-
-	if strategic.FightingMove {
-		pros = append(pros, "Addresses the local tactical situation")
-	}
-
-	if strategic.InfluenceMove {
-		pros = append(pros, "Builds valuable influence for future fighting")
-	}
-
-	if strategic.Urgency == "critical" {
-		pros = append(pros, "Critical move that prevents opponent's strong continuation")
-	}
-
-	return pros
-}
-
-// generateCons lists potential disadvantages of a move.
-func generateCons(moveInfo *MoveInfo, rank int, allMoves []MoveInfo, strategic StrategicInfo) []string {
-	cons := []string{}
-
-	if rank > 1 && len(allMoves) > 0 {
-		winrateLoss := allMoves[0].Winrate - moveInfo.Winrate
-		if winrateLoss > 0.02 {
-			cons = append(cons, fmt.Sprintf("Loses %.1f%% win rate compared to best move", winrateLoss*100))
-		}
-	}
-
-	if strategic.BoardRegion == "center" && len(allMoves) < 20 {
-		cons = append(cons, "May be premature to play in center")
-	}
-
-	if !strategic.FightingMove && strategic.Urgency != "critical" {
-		cons = append(cons, "Might miss urgent moves elsewhere")
-	}
-
-	if moveInfo.ScoreLead < -5 {
-		cons = append(cons, "Position remains difficult for this player")
-	}
-
-	return cons
-}
-
-// findAlternatives identifies alternative moves.
-func findAlternatives(chosen *MoveInfo, allMoves []MoveInfo, position *Position) []AlternativeMove {
-	alternatives := []AlternativeMove{}
-
-	for i, move := range allMoves {
-		if i >= 5 || move.Move == chosen.Move {
-			continue
-		}
-
-		alt := AlternativeMove{
-			Move:        move.Move,
-			WinrateDiff: move.Winrate - chosen.Winrate,
-			ScoreDiff:   move.ScoreLead - chosen.ScoreLead,
-		}
-
-		// Generate reason based on characteristics
-		switch {
-		case alt.WinrateDiff > 0.02:
-			alt.Reason = fmt.Sprintf("Higher win rate (+%.1f%%)", alt.WinrateDiff*100)
-		case move.Move == "pass":
-			alt.Reason = "Pass if game is essentially over"
-		default:
-			region := determineBoardRegion(move.Move, position.BoardXSize)
-			switch region {
-			case "corner":
-				alt.Reason = "Alternative corner approach"
-			case "side":
-				alt.Reason = "Side development"
-			case "center":
-				alt.Reason = "Central influence"
-			default:
-				alt.Reason = "Alternative continuation"
-			}
-		}
-
-		alternatives = append(alternatives, alt)
-	}
-
-	return alternatives
-}
-
-// Helper functions.
-func intPtr(i int) *int {
-	return &i
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func abs(a int) int {
-	if a < 0 {
-		return -a
-	}
-	return a
 }

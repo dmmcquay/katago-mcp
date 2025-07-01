@@ -41,7 +41,7 @@ func TestAnalyzePositionTool(t *testing.T) {
 	}
 
 	// This should fail because mock engine won't start
-	_, err := handler.handleAnalyzePosition(ctx, req)
+	_, err := handler.HandleAnalyzePosition(ctx, req)
 	if err == nil {
 		t.Error("Expected error for mock engine")
 	}
@@ -66,7 +66,7 @@ func TestEngineStatusTool(t *testing.T) {
 		},
 	}
 
-	result, err := handler.handleGetEngineStatus(ctx, req)
+	result, err := handler.HandleGetEngineStatus(ctx, req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestStartStopEngineTool(t *testing.T) {
 	}
 
 	// This should fail because mock engine won't start
-	_, err := handler.handleStartEngine(ctx, startReq)
+	_, err := handler.HandleStartEngine(ctx, startReq)
 	if err == nil {
 		t.Error("Expected error for mock engine start")
 	}
@@ -115,7 +115,7 @@ func TestStartStopEngineTool(t *testing.T) {
 		},
 	}
 
-	result, err := handler.handleStopEngine(ctx, stopReq)
+	result, err := handler.HandleStopEngine(ctx, stopReq)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestAnalyzePositionArguments(t *testing.T) {
 				},
 			}
 
-			_, err := handler.handleAnalyzePosition(ctx, req)
+			_, err := handler.HandleAnalyzePosition(ctx, req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleAnalyzePosition() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -3,45 +3,38 @@ package katago
 import (
 	"context"
 	"fmt"
-	"math"
+	"strings"
 )
 
-// TerritoryMap represents ownership probabilities for each board point.
-type TerritoryMap struct {
-	BoardXSize int         `json:"boardXSize"`
-	BoardYSize int         `json:"boardYSize"`
-	Ownership  [][]float64 `json:"ownership"` // -1 (white) to 1 (black)
-	Territory  [][]string  `json:"territory"` // "B", "W", or "?" for uncertain
-}
-
-// TerritoryEstimate contains the territory analysis results.
+// TerritoryEstimate contains territory ownership information.
 type TerritoryEstimate struct {
 	Map            *TerritoryMap `json:"map"`
 	BlackTerritory int           `json:"blackTerritory"`
 	WhiteTerritory int           `json:"whiteTerritory"`
-	DamePoints     int           `json:"damePoints"`  // Neutral points
-	BlackDead      []string      `json:"blackDead"`   // Dead black stones
-	WhiteDead      []string      `json:"whiteDead"`   // Dead white stones
-	FinalScore     float64       `json:"finalScore"`  // Positive = black wins
-	ScoreString    string        `json:"scoreString"` // Human readable score
+	DamePoints     int           `json:"damePoints"`
+	ScoreEstimate  float64       `json:"scoreEstimate"`
+	ScoreString    string        `json:"scoreString"`
+}
+
+// TerritoryMap represents the ownership of each board point.
+type TerritoryMap struct {
+	Territory  [][]string  `json:"territory"`  // "B", "W", or "?" for each point
+	Ownership  [][]float64 `json:"ownership"`  // -1.0 to 1.0 (-1 = white, 1 = black)
+	DeadStones []string    `json:"deadStones"` // List of dead stone groups
 }
 
 // EstimateTerritory analyzes territory ownership for a position.
 func (e *Engine) EstimateTerritory(ctx context.Context, position *Position, threshold float64) (*TerritoryEstimate, error) {
-	// Validate position
-	if err := ValidatePosition(position); err != nil {
-		return nil, fmt.Errorf("invalid position: %w", err)
+	// Default threshold
+	if threshold <= 0 || threshold > 1 {
+		threshold = 0.85
 	}
 
-	// Default threshold for territory determination
-	if threshold <= 0 {
-		threshold = 0.60 // 60% confidence
-	}
-
-	// Request ownership map in analysis
+	// Request ownership analysis
 	req := &AnalysisRequest{
 		Position:         position,
 		IncludeOwnership: true,
+		IncludePolicy:    false,
 	}
 
 	result, err := e.Analyze(ctx, req)
@@ -50,27 +43,39 @@ func (e *Engine) EstimateTerritory(ctx context.Context, position *Position, thre
 	}
 
 	if len(result.Ownership) == 0 {
-		return nil, fmt.Errorf("ownership data not available")
+		return nil, fmt.Errorf("no ownership data returned")
 	}
 
 	// Create territory map
-	territoryMap := &TerritoryMap{
-		BoardXSize: position.BoardXSize,
-		BoardYSize: position.BoardYSize,
-		Ownership:  result.Ownership,
-		Territory:  make([][]string, position.BoardYSize),
+	boardSize := position.BoardXSize
+	if position.BoardYSize != boardSize {
+		return nil, fmt.Errorf("non-square boards not fully supported")
 	}
 
-	// Convert ownership values to territory
+	territoryMap := &TerritoryMap{
+		Territory: make([][]string, boardSize),
+		Ownership: make([][]float64, boardSize),
+	}
+
 	blackTerritory := 0
 	whiteTerritory := 0
 	damePoints := 0
 
-	for y := 0; y < position.BoardYSize; y++ {
-		territoryMap.Territory[y] = make([]string, position.BoardXSize)
-		for x := 0; x < position.BoardXSize; x++ {
-			ownership := result.Ownership[y][x]
+	// Convert ownership to territory
+	for y := 0; y < boardSize; y++ {
+		territoryMap.Territory[y] = make([]string, boardSize)
+		territoryMap.Ownership[y] = make([]float64, boardSize)
 
+		for x := 0; x < boardSize; x++ {
+			idx := y*boardSize + x
+			if idx >= len(result.Ownership) {
+				continue
+			}
+
+			ownership := result.Ownership[idx]
+			territoryMap.Ownership[y][x] = ownership
+
+			// Determine territory based on threshold
 			switch {
 			case ownership > threshold:
 				territoryMap.Territory[y][x] = "B"
@@ -85,47 +90,48 @@ func (e *Engine) EstimateTerritory(ctx context.Context, position *Position, thre
 		}
 	}
 
-	// Identify dead stones (simplified - would need more sophisticated analysis)
-	blackDead, whiteDead := identifyDeadStones(position, territoryMap)
+	// Identify dead stones (simplified - stones in opponent's strong territory)
+	deadStones := identifyDeadStones(position, territoryMap, threshold)
+	territoryMap.DeadStones = deadStones
 
-	// Calculate final score
-	// Territory scoring: territory + captures + komi
-	blackScore := float64(blackTerritory) + float64(len(whiteDead))
-	whiteScore := float64(whiteTerritory) + float64(len(blackDead)) + position.Komi
-	finalScore := blackScore - whiteScore
+	// Calculate score
+	komi := 6.5 // Default komi, should get from position.Rules
+	scoreEstimate := float64(blackTerritory-whiteTerritory) - komi
 
-	// Format score string
-	scoreString := formatScore(finalScore)
+	var scoreString string
+	if scoreEstimate > 0 {
+		scoreString = fmt.Sprintf("B+%.1f", scoreEstimate)
+	} else {
+		scoreString = fmt.Sprintf("W+%.1f", -scoreEstimate)
+	}
 
 	return &TerritoryEstimate{
 		Map:            territoryMap,
 		BlackTerritory: blackTerritory,
 		WhiteTerritory: whiteTerritory,
 		DamePoints:     damePoints,
-		BlackDead:      blackDead,
-		WhiteDead:      whiteDead,
-		FinalScore:     finalScore,
+		ScoreEstimate:  scoreEstimate,
 		ScoreString:    scoreString,
 	}, nil
 }
 
-// identifyDeadStones identifies potentially dead stones based on territory.
-func identifyDeadStones(position *Position, territoryMap *TerritoryMap) (blackDead, whiteDead []string) {
-	blackDead = []string{}
-	whiteDead = []string{}
+// identifyDeadStones finds stones that are likely dead.
+func identifyDeadStones(position *Position, territoryMap *TerritoryMap, threshold float64) []string {
+	deadStones := []string{}
+	boardSize := position.BoardXSize
 
-	// Build board state from moves
-	board := make([][]string, position.BoardYSize)
-	for y := 0; y < position.BoardYSize; y++ {
-		board[y] = make([]string, position.BoardXSize)
-		for x := 0; x < position.BoardXSize; x++ {
-			board[y][x] = ""
+	// Build current board state
+	board := make([][]string, boardSize)
+	for y := 0; y < boardSize; y++ {
+		board[y] = make([]string, boardSize)
+		for x := 0; x < boardSize; x++ {
+			board[y][x] = "."
 		}
 	}
 
-	// Place initial stones
+	// Apply initial stones
 	for _, stone := range position.InitialStones {
-		x, y := parseCoordinate(stone.Location, position.BoardXSize)
+		x, y := parseCoord(stone.Location, boardSize)
 		if x >= 0 && y >= 0 {
 			board[y][x] = stone.Color
 		}
@@ -133,144 +139,198 @@ func identifyDeadStones(position *Position, territoryMap *TerritoryMap) (blackDe
 
 	// Apply moves
 	for _, move := range position.Moves {
-		if move.Location != "" {
-			x, y := parseCoordinate(move.Location, position.BoardXSize)
+		if move.Location != "" && move.Location != "pass" { // Not a pass
+			x, y := parseCoord(move.Location, boardSize)
 			if x >= 0 && y >= 0 {
 				board[y][x] = move.Color
 			}
 		}
 	}
 
-	// Find dead stones (stones in opponent's territory)
-	for y := 0; y < position.BoardYSize; y++ {
-		for x := 0; x < position.BoardXSize; x++ {
-			stone := board[y][x]
-			territory := territoryMap.Territory[y][x]
+	// Check each stone
+	visited := make([][]bool, boardSize)
+	for y := 0; y < boardSize; y++ {
+		visited[y] = make([]bool, boardSize)
+	}
 
-			if stone == "b" && territory == "W" {
-				blackDead = append(blackDead, formatCoordinate(x, y, position.BoardXSize))
-			} else if stone == "w" && territory == "B" {
-				whiteDead = append(whiteDead, formatCoordinate(x, y, position.BoardXSize))
+	for y := 0; y < boardSize; y++ {
+		for x := 0; x < boardSize; x++ {
+			if board[y][x] != "." && !visited[y][x] {
+				// Check if this stone group is dead
+				group := findGroup(x, y, board, visited)
+				if isGroupDead(group, board[y][x], territoryMap, threshold) {
+					deadStones = append(deadStones, group...)
+				}
 			}
 		}
 	}
 
-	return blackDead, whiteDead
+	return deadStones
 }
 
-// parseCoordinate converts KataGo coordinate to x,y.
-func parseCoordinate(coord string, boardSize int) (x, y int) {
+// findGroup finds all stones connected to the given position.
+func findGroup(x, y int, board [][]string, visited [][]bool) []string {
+	boardSize := len(board)
+	if x < 0 || x >= boardSize || y < 0 || y >= boardSize || visited[y][x] {
+		return []string{}
+	}
+
+	color := board[y][x]
+	if color == "." {
+		return []string{}
+	}
+
+	visited[y][x] = true
+	group := []string{coordToString(x, y, boardSize)}
+
+	// Check adjacent points
+	directions := [][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+	for _, dir := range directions {
+		nx, ny := x+dir[0], y+dir[1]
+		if nx >= 0 && nx < boardSize && ny >= 0 && ny < boardSize &&
+			board[ny][nx] == color && !visited[ny][nx] {
+			subgroup := findGroup(nx, ny, board, visited)
+			group = append(group, subgroup...)
+		}
+	}
+
+	return group
+}
+
+// isGroupDead checks if a group of stones is likely dead.
+func isGroupDead(group []string, color string, territoryMap *TerritoryMap, threshold float64) bool {
+	if len(group) == 0 {
+		return false
+	}
+
+	// A group is dead if it's entirely surrounded by strong opponent territory
+	// For black stones: dead if in strong white territory (ownership < -threshold)
+	// For white stones: dead if in strong black territory (ownership > threshold)
+
+	for _, coord := range group {
+		x, y := parseCoord(coord, len(territoryMap.Ownership))
+		if x >= 0 && y >= 0 && y < len(territoryMap.Ownership) && x < len(territoryMap.Ownership[y]) {
+			ownership := territoryMap.Ownership[y][x]
+			if color == "B" {
+				// Black stone is alive if ownership is positive (black territory)
+				// Dead if ownership < -threshold (strong white territory)
+				if ownership > -threshold {
+					return false // Not dead - either in black territory or contested
+				}
+			} else if color == "W" {
+				// White stone is alive if ownership is negative (white territory)
+				// Dead if ownership > threshold (strong black territory)
+				if ownership < threshold {
+					return false // Not dead - either in white territory or contested
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+// parseCoord converts a coordinate string to x,y indices.
+func parseCoord(coord string, boardSize int) (x, y int) {
 	if len(coord) < 2 {
 		return -1, -1
 	}
 
-	// Parse column (A-T, skipping I)
-	col := coord[0]
-	x = -1
-	if col >= 'A' && col <= 'H' {
-		x = int(col - 'A')
-	} else if col >= 'J' && col <= 'T' {
-		x = int(col - 'A' - 1)
+	// Handle pass
+	if coord == "pass" || coord == "" {
+		return -1, -1
 	}
 
-	// Parse row
+	col := coord[0]
 	row := coord[1:]
+
+	// Convert column letter to x coordinate
+	x = -1
+	if col >= 'A' && col <= 'Z' {
+		x = int(col - 'A')
+		if col > 'I' {
+			x-- // Skip 'I' in Go coordinates
+		}
+	}
+
+	// Convert row number to y coordinate
 	y = -1
 	if row != "" {
 		var rowNum int
-		if _, err := fmt.Sscanf(row, "%d", &rowNum); err == nil && rowNum > 0 && rowNum <= boardSize {
-			y = boardSize - rowNum
-		}
+		_, _ = fmt.Sscanf(row, "%d", &rowNum)
+		y = boardSize - rowNum
+	}
+
+	if x < 0 || x >= boardSize || y < 0 || y >= boardSize {
+		return -1, -1
 	}
 
 	return x, y
 }
 
-// formatCoordinate converts x,y to KataGo coordinate.
-func formatCoordinate(x, y, boardSize int) string {
-	// Convert x to letter (A-T, skipping I)
-	var col string
-	if x < 8 {
-		col = string(rune('A' + x))
-	} else {
-		col = string(rune('A' + x + 1))
+// coordToString converts x,y indices to a coordinate string.
+func coordToString(x, y, boardSize int) string {
+	col := 'A' + x
+	if x >= 8 {
+		col++ // Skip 'I'
 	}
-
-	// Convert y to row number
 	row := boardSize - y
-
-	return fmt.Sprintf("%s%d", col, row)
+	return fmt.Sprintf("%c%d", col, row)
 }
 
-// formatScore formats the score in a human-readable way.
-func formatScore(score float64) string {
-	if math.Abs(score) < 0.5 {
-		return "Jigo (Draw)"
-	}
-
-	winner := "B"
-	points := score
-	if score < 0 {
-		winner = "W"
-		points = -score
-	}
-
-	// Round to nearest 0.5
-	points = math.Round(points*2) / 2
-
-	return fmt.Sprintf("%s+%.1f", winner, points)
-}
-
-// GetTerritoryVisualization creates a text visualization of the territory.
+// GetTerritoryVisualization returns a visual representation of the territory.
 func GetTerritoryVisualization(estimate *TerritoryEstimate) string {
-	result := ""
-
-	// Add column labels
-	result += "   "
-	for x := 0; x < estimate.Map.BoardXSize; x++ {
-		if x < 8 {
-			result += fmt.Sprintf("%c ", 'A'+x)
-		} else {
-			result += fmt.Sprintf("%c ", 'A'+x+1) // Skip 'I'
-		}
+	if estimate.Map == nil || len(estimate.Map.Territory) == 0 {
+		return "No territory data available"
 	}
-	result += "\n"
 
-	// Add rows
-	for y := 0; y < estimate.Map.BoardYSize; y++ {
-		row := estimate.Map.BoardYSize - y
-		result += fmt.Sprintf("%2d ", row)
+	var sb strings.Builder
+	boardSize := len(estimate.Map.Territory)
 
-		for x := 0; x < estimate.Map.BoardXSize; x++ {
-			territory := estimate.Map.Territory[y][x]
-			switch territory {
+	// Column labels
+	sb.WriteString("   ")
+	for x := 0; x < boardSize; x++ {
+		col := 'A' + x
+		if x >= 8 {
+			col++ // Skip 'I'
+		}
+		sb.WriteString(fmt.Sprintf(" %c", col))
+	}
+	sb.WriteString("\n")
+
+	// Board with territory markers
+	for y := 0; y < boardSize; y++ {
+		row := boardSize - y
+		sb.WriteString(fmt.Sprintf("%2d ", row))
+		for x := 0; x < boardSize; x++ {
+			switch estimate.Map.Territory[y][x] {
 			case "B":
-				result += "● " // Black territory
+				sb.WriteString(" ●") // Black territory
 			case "W":
-				result += "○ " // White territory
+				sb.WriteString(" ○") // White territory
 			default:
-				result += "· " // Uncertain/dame
+				sb.WriteString(" ·") // Dame or unclear
 			}
 		}
-		result += fmt.Sprintf("%2d\n", row)
+		sb.WriteString(fmt.Sprintf(" %d\n", row))
 	}
 
-	// Add column labels again
-	result += "   "
-	for x := 0; x < estimate.Map.BoardXSize; x++ {
-		if x < 8 {
-			result += fmt.Sprintf("%c ", 'A'+x)
-		} else {
-			result += fmt.Sprintf("%c ", 'A'+x+1)
+	// Column labels again
+	sb.WriteString("   ")
+	for x := 0; x < boardSize; x++ {
+		col := 'A' + x
+		if x >= 8 {
+			col++ // Skip 'I'
 		}
+		sb.WriteString(fmt.Sprintf(" %c", col))
 	}
-	result += "\n\n"
+	sb.WriteString("\n\n")
 
-	// Add summary
-	result += fmt.Sprintf("Black territory: %d\n", estimate.BlackTerritory)
-	result += fmt.Sprintf("White territory: %d\n", estimate.WhiteTerritory)
-	result += fmt.Sprintf("Dame points: %d\n", estimate.DamePoints)
-	result += fmt.Sprintf("Score: %s\n", estimate.ScoreString)
+	// Summary
+	sb.WriteString(fmt.Sprintf("Black territory: %d\n", estimate.BlackTerritory))
+	sb.WriteString(fmt.Sprintf("White territory: %d\n", estimate.WhiteTerritory))
+	sb.WriteString(fmt.Sprintf("Dame points: %d\n", estimate.DamePoints))
+	sb.WriteString(fmt.Sprintf("Score: %s\n", estimate.ScoreString))
 
-	return result
+	return sb.String()
 }

@@ -91,7 +91,9 @@ Once configured, you can ask Claude to:
 
 ## Development
 
-Run tests:
+### Running Tests
+
+Run unit tests:
 ```bash
 go test ./...
 ```
@@ -100,6 +102,43 @@ Run with race detection:
 ```bash
 go test -race ./...
 ```
+
+### End-to-End Testing
+
+The project includes comprehensive e2e tests that run against a real KataGo instance.
+
+#### Setup E2E Test Environment
+
+First, ensure KataGo is installed (see Prerequisites above), then run:
+
+```bash
+make setup-e2e
+```
+
+This will download a test model and generate a test configuration.
+
+#### Run E2E Tests
+
+```bash
+make e2e-test
+```
+
+Or manually:
+```bash
+# Set environment variables
+export KATAGO_TEST_MODEL="$HOME/.katago-mcp-test/test-model.bin.gz"
+export KATAGO_TEST_CONFIG="$HOME/.katago-mcp-test/test-config.cfg"
+
+# Run tests
+go test -tags=e2e ./e2e/... -v
+```
+
+The e2e tests cover:
+- Position analysis with real KataGo engine
+- Game review and mistake detection
+- Territory estimation
+- Move explanations
+- MCP server integration
 
 ## Contributing
 
