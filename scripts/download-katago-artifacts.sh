@@ -54,6 +54,36 @@ if ! download_if_missing "$KATAGO_BINARY_URL" "$KATAGO_BINARY_FILE"; then
     exit 1
 fi
 
+# Extract if it's an AppImage (for use in Docker)
+if [ -f "${ARTIFACTS_DIR}/${KATAGO_BINARY_FILE}" ]; then
+    echo -e "${YELLOW}📦 Extracting KataGo binary...${NC}"
+    cd "$ARTIFACTS_DIR"
+    unzip -o "$KATAGO_BINARY_FILE" katago || {
+        echo -e "${RED}Failed to extract katago from zip${NC}"
+        exit 1
+    }
+    # Check if extracted file is an AppImage
+    if file katago | grep -q "AppImage"; then
+        echo -e "${YELLOW}🔧 Extracting AppImage contents...${NC}"
+        chmod +x katago
+        ./katago --appimage-extract >/dev/null 2>&1 || {
+            echo -e "${RED}Failed to extract AppImage${NC}"
+            exit 1
+        }
+        # Move the actual binary out
+        if [ -f "squashfs-root/usr/bin/katago" ]; then
+            mv squashfs-root/usr/bin/katago katago.bin
+            rm -rf squashfs-root katago
+            mv katago.bin katago
+            echo -e "${GREEN}✅ Extracted KataGo binary from AppImage${NC}"
+        else
+            echo -e "${RED}Could not find katago binary in AppImage${NC}"
+            exit 1
+        fi
+    fi
+    cd - >/dev/null
+fi
+
 # Download neural network model
 if ! download_if_missing "$MODEL_URL" "$MODEL_FILE"; then
     echo -e "${RED}Failed to download neural network model${NC}"
