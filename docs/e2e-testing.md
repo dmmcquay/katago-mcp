@@ -214,10 +214,12 @@ To speed up CI builds, we use a pre-built Docker image with KataGo already compi
 - **Build time**: Reduced from ~10 minutes to ~2 minutes
 - **Workflow**: `.github/workflows/build-katago-base.yml`
 
-The base image is rebuilt only when:
-1. KataGo version changes
-2. Base image Dockerfile is modified
+The base image is built automatically when:
+1. The E2E test job runs and the image doesn't exist
+2. Changes are pushed to the base image files
 3. Manually triggered via GitHub Actions
+
+No manual intervention is required - the CI workflow will build the base image automatically on first use.
 
 ## Future Improvements
 

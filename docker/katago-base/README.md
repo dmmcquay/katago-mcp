@@ -11,8 +11,11 @@ The base image speeds up CI builds by pre-compiling KataGo. Instead of compiling
 ### Automated (GitHub Actions)
 
 The image is automatically built and pushed to GitHub Container Registry when:
-1. Changes are pushed to `docker/katago-base/` on the main branch
-2. The workflow is manually triggered via GitHub Actions UI
+1. The E2E test job runs and the image doesn't exist (automatic)
+2. Changes are pushed to `docker/katago-base/` on the main branch
+3. The workflow is manually triggered via GitHub Actions UI
+
+The E2E test workflow will automatically check if the base image exists and build it if needed, so no manual intervention is required.
 
 ### Manual Build
 
