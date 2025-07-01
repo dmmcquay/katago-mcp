@@ -2,11 +2,26 @@
 
 This directory contains end-to-end tests that run against a real KataGo instance.
 
+## Docker Architecture
+
+The e2e tests use a two-layer Docker approach:
+
+1. **Base Image** (`katago-base`): Contains KataGo binary, neural network model, and config
+   - Built once and pushed to GitHub Container Registry
+   - Pinned to specific KataGo version (1.15.3)
+   - Includes a 15-block neural network (~30MB)
+   - Optimized for CPU-only testing
+
+2. **Test Image** (`Dockerfile.e2e`): Builds on base image and adds test code
+   - Uses pre-built base image when available
+   - Falls back to building from scratch if needed
+   - Runs the actual e2e tests
+
 ## Running E2E Tests
 
 ### Using Docker (Recommended)
 
-The easiest way to run e2e tests is using Docker, which includes KataGo pre-installed:
+The easiest way to run e2e tests is using Docker:
 
 ```bash
 # Run e2e tests in Docker
@@ -14,6 +29,9 @@ The easiest way to run e2e tests is using Docker, which includes KataGo pre-inst
 
 # Or use docker-compose
 docker-compose -f docker-compose.e2e.yml up --build
+
+# Use a specific base image
+BASE_IMAGE=ghcr.io/dmmcquay/katago-base:1.15.3-cpu docker-compose -f docker-compose.e2e.yml up --build
 ```
 
 ### Manual Setup

@@ -116,7 +116,9 @@ jobs:
     
     - name: Build and run E2E tests in Docker
       run: |
-        echo "🐳 Building Docker image with KataGo..."
+        echo "🐳 Building Docker image for E2E tests..."
+        
+        # Build the e2e test image
         docker build -f Dockerfile.e2e -t katago-mcp-e2e .
         
         echo "🧪 Running E2E tests in Docker container..."

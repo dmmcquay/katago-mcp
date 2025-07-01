@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.e2e
+      args:
+        # Use pre-built base image if available
+        BASE_IMAGE: ${BASE_IMAGE:-ubuntu:22.04}
     volumes:
       # Mount source code for live updates during development
       - ./internal:/app/internal
