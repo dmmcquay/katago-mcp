@@ -222,4 +222,3 @@ func levelToString(level Level) string {
 		return "UNKNOWN"
 	}
 }
-

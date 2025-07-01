@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Context key types
+// Context key types.
 type contextKey string
 
 const (
@@ -57,4 +57,3 @@ func generateID(prefix string) string {
 	}
 	return fmt.Sprintf("%s_%s", prefix, hex.EncodeToString(b))
 }
-
