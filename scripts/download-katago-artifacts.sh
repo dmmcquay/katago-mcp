@@ -65,10 +65,12 @@ if [ -f "${ARTIFACTS_DIR}/${KATAGO_BINARY_FILE}" ]; then
         exit 1
     }
     
-    # Check if extracted file is an AppImage
-    if file katago | grep -q "AppImage"; then
+    # Make it executable
+    chmod +x katago
+    
+    # Try to run with --version to detect if it's an AppImage
+    if ./katago --version 2>&1 | grep -q "No suitable fusermount"; then
         echo -e "${YELLOW}🔧 KataGo is packaged as AppImage, extracting actual binary...${NC}"
-        chmod +x katago
         
         # Extract AppImage contents
         ./katago --appimage-extract >/dev/null 2>&1 || {
