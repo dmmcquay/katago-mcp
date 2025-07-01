@@ -110,6 +110,9 @@ jobs:
         echo "📥 Setting up KataGo model and config..."
         mkdir -p ~/.katago
         
+        # Install curl if not available
+        apt-get update && apt-get install -y curl
+        
         # Download a small test model
         curl -L -o ~/.katago/test-model.bin.gz \
           https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
