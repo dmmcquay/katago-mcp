@@ -81,10 +81,55 @@ jobs:
           echo "No edge case tests found, skipping..."
         fi
 
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+    container:
+      image: ghcr.io/dmmcquay/katago-base:v1.14.1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21.x'
+        cache: true
+    
+    - name: Verify KataGo is available
+      run: |
+        echo "🔍 Checking KataGo installation..."
+        which katago
+        katago version || true
+    
+    - name: Set up KataGo test environment
+      run: |
+        echo "📥 Setting up KataGo model and config..."
+        mkdir -p ~/.katago
+        
+        # Download a small test model
+        curl -L -o ~/.katago/test-model.bin.gz \
+          https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
+        
+        # Generate analysis config
+        katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg || true
+        
+        # Verify files exist
+        ls -la ~/.katago/
+    
+    - name: Run integration tests
+      run: |
+        echo "🧪 Running integration tests with real KataGo..."
+        go test -v -tags=integration -race ./internal/katago/...
+        echo "✅ Integration tests completed"
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, integration-tests]
     steps:
     - uses: actions/checkout@v4
     
@@ -110,7 +155,7 @@ jobs:
   e2e-tests:
     name: E2E Tests (Docker)
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, integration-tests]
     permissions:
       contents: read
       packages: write  # Needed to push images if building base
