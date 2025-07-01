@@ -118,7 +118,8 @@ jobs:
           https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
         
         # Generate analysis config with default settings (non-interactive)
-        printf "chinese\nn\n\n" | katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg
+        # Use 'yes' to answer all prompts with defaults (empty lines = defaults)
+        yes "" | head -10 | katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg || true
         
         # Verify files exist
         ls -la ~/.katago/
