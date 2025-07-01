@@ -110,15 +110,15 @@ jobs:
         echo "📥 Setting up KataGo model and config..."
         mkdir -p ~/.katago
         
-        # Install curl if not available
-        apt-get update && apt-get install -y curl
+        # Install curl and build tools for CGO
+        apt-get update && apt-get install -y curl build-essential
         
         # Download a small test model
         curl -L -o ~/.katago/test-model.bin.gz \
           https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
         
-        # Generate analysis config
-        katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg || true
+        # Generate analysis config with default settings (non-interactive)
+        echo "chinese" | katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg
         
         # Verify files exist
         ls -la ~/.katago/
@@ -126,6 +126,8 @@ jobs:
     - name: Run integration tests
       run: |
         echo "🧪 Running integration tests with real KataGo..."
+        # Enable CGO for race detection
+        export CGO_ENABLED=1
         go test -v -tags=integration -race ./internal/katago/...
         echo "✅ Integration tests completed"
 
