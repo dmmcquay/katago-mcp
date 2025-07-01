@@ -117,9 +117,8 @@ jobs:
         curl -L -o ~/.katago/test-model.bin.gz \
           https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
         
-        # Generate analysis config with default settings (non-interactive)
-        # Use 'yes' to answer all prompts with defaults (empty lines = defaults)
-        yes "" | head -10 | katago genconfig -model ~/.katago/test-model.bin.gz -output ~/.katago/analysis.cfg || true
+        # Copy pre-generated config (same approach as e2e tests)
+        cp docker/katago-artifacts/test-config.cfg ~/.katago/analysis.cfg
         
         # Verify files exist
         ls -la ~/.katago/
