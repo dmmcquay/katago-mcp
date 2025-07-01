@@ -77,6 +77,17 @@ pre-commit: fmt lint test
 
 # Ensure code is ready for PR
 pr-ready: ci
+
+# Build KataGo base image locally
+build-base-image:
+	@echo "Building KataGo base image..."
+	@cd docker/katago-base && ./build.sh
+
+# Test with pre-built base image
+test-base-image:
+	@echo "Testing pre-built base image..."
+	@docker run --rm ghcr.io/dmmcquay/katago-base:v1.14.1 katago version || \
+		(echo "Base image not found. Building locally..." && $(MAKE) build-base-image)
 	@echo "Checking git status..."
 	@if [ -n "$$(git status --porcelain)" ]; then \
 		echo "Error: Working directory not clean. Commit or stash changes."; \

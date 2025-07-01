@@ -204,6 +204,21 @@ These are the same models used by KataGo and other Go applications.
 - No user-provided models are executed in CI
 - Tests run in isolated environments
 
+## CI Performance Optimization
+
+### Pre-built Base Image
+
+To speed up CI builds, we use a pre-built Docker image with KataGo already compiled:
+
+- **Image**: `ghcr.io/dmmcquay/katago-base:v1.14.1`
+- **Build time**: Reduced from ~10 minutes to ~2 minutes
+- **Workflow**: `.github/workflows/build-katago-base.yml`
+
+The base image is rebuilt only when:
+1. KataGo version changes
+2. Base image Dockerfile is modified
+3. Manually triggered via GitHub Actions
+
 ## Future Improvements
 
 1. **Model Caching** - Cache downloaded models between CI runs
