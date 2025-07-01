@@ -96,9 +96,7 @@ The KataGo MCP server provides core functionality for Go game analysis but lacks
 
 **Gaps:**
 - No production-optimized container image
-- No Helm charts or K8s deployments
 - No service mesh integration
-- No blue-green deployment support
 - No configuration hot-reload
 
 **Recommendations:**
@@ -107,14 +105,8 @@ The KataGo MCP server provides core functionality for Go game analysis but lacks
    - Non-root user
    - Security scanning
    - Minimal base image
-2. Add Kubernetes manifests:
-   - Deployment
-   - Service
-   - ConfigMap/Secret
-   - HPA (Horizontal Pod Autoscaler)
-   - PDB (Pod Disruption Budget)
-3. Create Helm chart for easy deployment
-4. Add Terraform modules for cloud resources
+2. Add configuration hot-reload capability
+3. Document container deployment best practices
 
 ### 5. Performance & Scalability ⚠️
 
@@ -178,16 +170,14 @@ The KataGo MCP server provides core functionality for Go game analysis but lacks
 ### P1 - High (Should have soon after launch)
 1. [ ] Add OpenTelemetry instrumentation
 2. [ ] Implement caching layer
-3. [ ] Create Kubernetes manifests
-4. [ ] Add performance benchmarks
-5. [ ] Write operational runbooks
+3. [ ] Add performance benchmarks
+4. [ ] Write operational runbooks
 
 ### P2 - Medium (Nice to have)
 1. [ ] Add circuit breaker pattern
-2. [ ] Implement blue-green deployments
-3. [ ] Create Helm charts
-4. [ ] Add request signing for security
-5. [ ] Implement distributed tracing
+2. [ ] Add request signing for security
+3. [ ] Implement distributed tracing
+4. [ ] Add configuration hot-reload
 
 ## Conclusion
 
