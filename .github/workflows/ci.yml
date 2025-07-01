@@ -117,11 +117,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Check if base image exists
       id: check-base
       run: |
         echo "🔍 Checking if KataGo base image exists..."
-        if docker pull ghcr.io/dmmcquay/katago-base:v1.14.1 2>/dev/null; then
+        if docker pull ghcr.io/dmmcquay/katago-base:v1.14.1; then
           echo "✅ Base image found"
           echo "exists=true" >> $GITHUB_OUTPUT
         else
@@ -132,14 +139,6 @@ jobs:
     - name: Set up Docker Buildx
       if: steps.check-base.outputs.exists == 'false'
       uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Container Registry
-      if: steps.check-base.outputs.exists == 'false'
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Build and push base image if needed
       if: steps.check-base.outputs.exists == 'false'
