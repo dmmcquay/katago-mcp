@@ -30,8 +30,8 @@ type LRU struct {
 }
 
 // NewLRU creates a new LRU cache with the given limits.
-// maxItems: maximum number of items (0 = unlimited)
-// maxSizeBytes: maximum total size in bytes (0 = unlimited)
+// maxItems: maximum number of items (0 = unlimited).
+// maxSizeBytes: maximum total size in bytes (0 = unlimited).
 func NewLRU(maxItems int, maxSizeBytes int64) *LRU {
 	return &LRU{
 		maxItems:     maxItems,
@@ -49,7 +49,11 @@ func (c *LRU) Get(key string) (interface{}, bool) {
 	if elem, ok := c.items[key]; ok {
 		c.evictionList.MoveToFront(elem)
 		c.hits++
-		return elem.Value.(*entry).value, true
+		e, ok := elem.Value.(*entry)
+		if !ok {
+			return nil, false
+		}
+		return e.value, true
 	}
 
 	c.misses++
@@ -66,7 +70,10 @@ func (c *LRU) Put(key string, value interface{}, size int64) {
 	if elem, ok := c.items[key]; ok {
 		// Update existing entry
 		c.evictionList.MoveToFront(elem)
-		e := elem.Value.(*entry)
+		e, ok := elem.Value.(*entry)
+		if !ok {
+			return
+		}
 		c.currentSize += size - e.size // Adjust size
 		e.value = value
 		e.size = size
@@ -122,7 +129,10 @@ func (c *LRU) evict() {
 // removeElement removes an element from the cache.
 func (c *LRU) removeElement(elem *list.Element) {
 	c.evictionList.Remove(elem)
-	e := elem.Value.(*entry)
+	e, ok := elem.Value.(*entry)
+	if !ok {
+		return
+	}
 	delete(c.items, e.key)
 	c.currentSize -= e.size
 }
@@ -211,4 +221,3 @@ func (c *LRU) ResetStats() {
 	c.misses = 0
 	c.evictions = 0
 }
-

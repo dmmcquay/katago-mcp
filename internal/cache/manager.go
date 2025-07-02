@@ -150,4 +150,3 @@ func EstimateSize(response interface{}) int64 {
 	}
 	return int64(len(data))
 }
-

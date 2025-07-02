@@ -374,9 +374,9 @@ func (e *Engine) sendQueryWithCache(query map[string]interface{}) (*Response, er
 			e.prometheus.RecordCacheMiss()
 
 			// Not in cache, execute query
-			resp, err := e.sendQuery(query)
-			if err != nil {
-				return nil, err
+			resp, queryErr := e.sendQuery(query)
+			if queryErr != nil {
+				return nil, queryErr
 			}
 
 			// Cache the successful response
