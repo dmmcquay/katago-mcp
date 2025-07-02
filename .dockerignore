@@ -53,9 +53,8 @@ scripts/
 # Development configurations
 config.example.json
 
-# Large artifacts that are copied separately
+# Large artifacts not needed for production (keep for e2e tests)
 docker/katago-artifacts/*.zip
-docker/katago-artifacts/*.bin.gz
 
 # Logs and temporary files
 *.log
