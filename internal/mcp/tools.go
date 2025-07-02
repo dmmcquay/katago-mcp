@@ -15,8 +15,9 @@ import (
 
 // ToolsHandler manages MCP tools for KataGo.
 type ToolsHandler struct {
-	engine katago.EngineInterface
-	logger logging.ContextLogger
+	engine     katago.EngineInterface
+	logger     logging.ContextLogger
+	middleware *Middleware
 }
 
 // NewToolsHandler creates a new tools handler.
@@ -25,6 +26,11 @@ func NewToolsHandler(engine katago.EngineInterface, logger logging.ContextLogger
 		engine: engine,
 		logger: logger,
 	}
+}
+
+// SetMiddleware sets the middleware for the tools handler.
+func (h *ToolsHandler) SetMiddleware(middleware *Middleware) {
+	h.middleware = middleware
 }
 
 // RegisterTools registers all tools with the MCP server.
@@ -57,25 +63,41 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 			mcp.Description("Include more detailed output"),
 		),
 	)
-	s.AddTool(analyzePositionTool, h.HandleAnalyzePosition)
+	handler := h.HandleAnalyzePosition
+	if h.middleware != nil {
+		handler = h.middleware.WrapTool("analyzePosition", handler)
+	}
+	s.AddTool(analyzePositionTool, handler)
 
 	// Register getEngineStatus tool
 	getEngineStatusTool := mcp.NewTool("getEngineStatus",
 		mcp.WithDescription("Get the status of the KataGo engine"),
 	)
-	s.AddTool(getEngineStatusTool, h.HandleGetEngineStatus)
+	statusHandler := h.HandleGetEngineStatus
+	if h.middleware != nil {
+		statusHandler = h.middleware.WrapTool("getEngineStatus", statusHandler)
+	}
+	s.AddTool(getEngineStatusTool, statusHandler)
 
 	// Register startEngine tool
 	startEngineTool := mcp.NewTool("startEngine",
 		mcp.WithDescription("Start the KataGo engine if not already running"),
 	)
-	s.AddTool(startEngineTool, h.HandleStartEngine)
+	startHandler := h.HandleStartEngine
+	if h.middleware != nil {
+		startHandler = h.middleware.WrapTool("startEngine", startHandler)
+	}
+	s.AddTool(startEngineTool, startHandler)
 
 	// Register stopEngine tool
 	stopEngineTool := mcp.NewTool("stopEngine",
 		mcp.WithDescription("Stop the KataGo engine"),
 	)
-	s.AddTool(stopEngineTool, h.HandleStopEngine)
+	stopHandler := h.HandleStopEngine
+	if h.middleware != nil {
+		stopHandler = h.middleware.WrapTool("stopEngine", stopHandler)
+	}
+	s.AddTool(stopEngineTool, stopHandler)
 
 	// Register findMistakes tool
 	findMistakesTool := mcp.NewTool("findMistakes",
@@ -97,7 +119,11 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 			mcp.Description("Maximum visits per position (default: from config)"),
 		),
 	)
-	s.AddTool(findMistakesTool, h.HandleFindMistakes)
+	mistakesHandler := h.HandleFindMistakes
+	if h.middleware != nil {
+		mistakesHandler = h.middleware.WrapToolWithRetry("findMistakes", mistakesHandler, 2)
+	}
+	s.AddTool(findMistakesTool, mistakesHandler)
 
 	// Register evaluateTerritory tool
 	evaluateTerritoryTool := mcp.NewTool("evaluateTerritory",
@@ -113,7 +139,11 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 			mcp.Description("Include detailed point estimates"),
 		),
 	)
-	s.AddTool(evaluateTerritoryTool, h.HandleEvaluateTerritory)
+	territoryHandler := h.HandleEvaluateTerritory
+	if h.middleware != nil {
+		territoryHandler = h.middleware.WrapTool("evaluateTerritory", territoryHandler)
+	}
+	s.AddTool(evaluateTerritoryTool, territoryHandler)
 
 	// Register explainMove tool
 	explainMoveTool := mcp.NewTool("explainMove",
@@ -130,7 +160,11 @@ func (h *ToolsHandler) RegisterTools(s *server.MCPServer) {
 			mcp.Description("Maximum visits for analysis"),
 		),
 	)
-	s.AddTool(explainMoveTool, h.HandleExplainMove)
+	explainHandler := h.HandleExplainMove
+	if h.middleware != nil {
+		explainHandler = h.middleware.WrapTool("explainMove", explainHandler)
+	}
+	s.AddTool(explainMoveTool, explainHandler)
 }
 
 // HandleAnalyzePosition handles the analyzePosition tool.

@@ -27,7 +27,7 @@ COPY docker/katago-artifacts/test-config-mistakes.cfg /katago/config-mistakes.cf
 ENV KATAGO_TEST_MODEL=/katago/model.bin.gz
 ENV KATAGO_TEST_CONFIG=/katago/config.cfg
 ENV CGO_ENABLED=0
-ENV GOTOOLCHAIN=go1.23.10
+ENV GOTOOLCHAIN=local
 
 WORKDIR /app
 
