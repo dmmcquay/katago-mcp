@@ -148,7 +148,9 @@ func (e *Engine) Start(ctx context.Context) error {
 	if detection, err := DetectKataGo(); err == nil && detection.Version != "" {
 		version = detection.Version
 	}
-	e.prometheus.RecordEngineStatus(true, version)
+	if e.prometheus != nil {
+		e.prometheus.RecordEngineStatus(true, version)
+	}
 
 	// Start reader goroutines
 	go e.readStdout()
@@ -227,7 +229,9 @@ func (e *Engine) Stop() error {
 	e.pending = make(map[string]chan *Response)
 
 	e.logger.Info("KataGo engine stopped")
-	e.prometheus.RecordEngineStatus(false, "")
+	if e.prometheus != nil {
+		e.prometheus.RecordEngineStatus(false, "")
+	}
 	return nil
 }
 
@@ -367,11 +371,15 @@ func (e *Engine) sendQueryWithCache(query map[string]interface{}) (*Response, er
 			if cached, ok := e.cache.Get(cacheKey); ok {
 				if resp, ok := cached.(*Response); ok {
 					e.logger.Debug("Cache hit", "key", cacheKey)
-					e.prometheus.RecordCacheHit()
+					if e.prometheus != nil {
+						e.prometheus.RecordCacheHit()
+					}
 					return resp, nil
 				}
 			}
-			e.prometheus.RecordCacheMiss()
+			if e.prometheus != nil {
+				e.prometheus.RecordCacheMiss()
+			}
 
 			// Not in cache, execute query
 			resp, queryErr := e.sendQuery(query)
@@ -435,7 +443,9 @@ func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
 	// Wait for response with timeout
 	select {
 	case resp := <-respCh:
-		e.prometheus.RecordEngineQuery(queryType, time.Since(start).Seconds())
+		if e.prometheus != nil {
+			e.prometheus.RecordEngineQuery(queryType, time.Since(start).Seconds())
+		}
 		if resp.Error != nil {
 			switch v := resp.Error.(type) {
 			case string:
@@ -465,7 +475,9 @@ func (e *Engine) Ping(ctx context.Context) error {
 	defer e.mu.Unlock()
 
 	if !e.running {
-		e.prometheus.RecordEngineHealthCheck(false)
+		if e.prometheus != nil {
+			e.prometheus.RecordEngineHealthCheck(false)
+		}
 		return fmt.Errorf("engine not running")
 	}
 
@@ -474,14 +486,20 @@ func (e *Engine) Ping(ctx context.Context) error {
 		// Try to check process state without killing it
 		// On Unix, sending signal 0 checks if process exists
 		if err := e.cmd.Process.Signal(syscall.Signal(0)); err != nil {
-			e.prometheus.RecordEngineHealthCheck(false)
+			if e.prometheus != nil {
+				e.prometheus.RecordEngineHealthCheck(false)
+			}
 			return fmt.Errorf("engine process not responding: %w", err)
 		}
 	} else {
-		e.prometheus.RecordEngineHealthCheck(false)
+		if e.prometheus != nil {
+			e.prometheus.RecordEngineHealthCheck(false)
+		}
 		return fmt.Errorf("engine process not found")
 	}
 
-	e.prometheus.RecordEngineHealthCheck(true)
+	if e.prometheus != nil {
+		e.prometheus.RecordEngineHealthCheck(true)
+	}
 	return nil
 }
