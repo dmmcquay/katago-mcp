@@ -75,7 +75,7 @@ func TestEngineAnalysis(t *testing.T) {
 		ConfigPath: detection.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  100,
-		MaxTime:    1.0,
+		MaxTime:    5.0, // Longer timeout for CI environment
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
