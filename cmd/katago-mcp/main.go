@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
@@ -17,6 +15,7 @@ import (
 	"github.com/dmmcquay/katago-mcp/internal/metrics"
 	"github.com/dmmcquay/katago-mcp/internal/ratelimit"
 	httpserver "github.com/dmmcquay/katago-mcp/internal/server"
+	"github.com/dmmcquay/katago-mcp/internal/shutdown"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -60,6 +59,10 @@ func main() {
 	logger := logging.NewLoggerFromConfig(logConfig)
 	logger.Info("Starting KataGo MCP Server version %s (commit: %s, built: %s)",
 		cfg.Server.Version, GitCommit, BuildTime)
+
+	// Create shutdown manager
+	shutdownManager := shutdown.NewManager(logger)
+	shutdownManager.HandleSignals()
 
 	// Detect KataGo installation
 	logger.Info("Detecting KataGo installation...")
@@ -117,6 +120,11 @@ func main() {
 	// Create KataGo engine
 	engine := katago.NewEngine(&cfg.KataGo, logger)
 
+	// Register KataGo engine shutdown
+	shutdownManager.Register("katago-engine", func(ctx context.Context) error {
+		return engine.Stop()
+	})
+
 	// Create metrics collector
 	metricsCollector := metrics.NewCollector()
 
@@ -146,27 +154,14 @@ func main() {
 	}
 	logger.Info("Health check server started", "addr", healthAddr)
 
-	// Set up context with cancellation
-	ctx, cancel := context.WithCancel(context.Background())
+	// Register HTTP server shutdown
+	shutdownManager.Register("http-server", func(ctx context.Context) error {
+		return httpServer.Stop(ctx)
+	})
+
+	// Set up cancellation for MCP server
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// Handle graceful shutdown
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		logger.Info("Shutting down...")
-		cancel()
-
-		// Stop health check server
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer shutdownCancel()
-		if err := httpServer.Stop(shutdownCtx); err != nil {
-			logger.Error("Failed to stop health check server", "error", err)
-		}
-
-		_ = engine.Stop()
-	}()
 
 	// Create MCP server
 	mcpServer := server.NewMCPServer(
@@ -225,20 +220,36 @@ func main() {
 	// Start server
 	logger.Info("KataGo MCP Server ready")
 
-	// Serve with context for cancellation support
-	done := make(chan error, 1)
+	// Register MCP server shutdown
+	var mcpDone = make(chan error, 1)
+	shutdownManager.Register("mcp-server", func(ctx context.Context) error {
+		// MCP server doesn't have a graceful shutdown method
+		// Just cancel the context to stop it
+		cancel()
+		select {
+		case <-mcpDone:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	})
+
+	// Serve MCP
 	go func() {
-		done <- server.ServeStdio(mcpServer)
+		mcpDone <- server.ServeStdio(mcpServer)
+		close(mcpDone)
 	}()
 
+	// Wait for shutdown or server error
 	select {
-	case err := <-done:
+	case err := <-mcpDone:
 		if err != nil {
-			logger.Error("Server error", "error", err)
+			logger.Error("MCP server error", "error", err)
+			shutdownManager.Shutdown(30 * time.Second)
 		}
-	case <-ctx.Done():
-		logger.Info("Server stopped by context cancellation")
+	case <-shutdownManager.Done():
+		// Graceful shutdown initiated
 	}
 
-	_ = engine.Stop()
+	shutdownManager.WaitForShutdown()
 }
