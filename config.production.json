@@ -1,7 +1,9 @@
 {
   "server": {
     "name": "katago-mcp",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "description": "KataGo analysis server for MCP",
+    "healthAddr": ":8080"
   },
   "logging": {
     "level": "info",

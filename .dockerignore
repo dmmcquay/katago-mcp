@@ -8,22 +8,29 @@ katago-mcp
 *.dll
 *.so
 *.dylib
+*.prof
 
 # Test artifacts
 *.test
 *.out
 coverage.txt
+e2e/testdata/*.sgf
 
 # IDE files
 .vscode
 .idea
 *.swp
 *.swo
+*~
 
 # Documentation
 docs/
 *.md
 !README.md
+ARCHITECTURE.md
+IMPLEMENTATION_PLAN.md
+KATAGO_MCP_KICKSTART.md
+CONTRIBUTING.md
 
 # CI/CD
 .github/
@@ -35,3 +42,24 @@ test-fixtures/
 # Binary releases
 dist/
 release/
+
+# Docker files (except production ones)
+Dockerfile.e2e*
+docker-compose*.yml
+
+# Scripts not needed in production
+scripts/
+
+# Development configurations
+config.example.json
+
+# Large artifacts not needed for production (keep for e2e tests)
+docker/katago-artifacts/*.zip
+
+# Logs and temporary files
+*.log
+docker-build.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
