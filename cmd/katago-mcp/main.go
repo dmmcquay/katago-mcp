@@ -14,6 +14,8 @@ import (
 	"github.com/dmmcquay/katago-mcp/internal/katago"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
 	mcptools "github.com/dmmcquay/katago-mcp/internal/mcp"
+	"github.com/dmmcquay/katago-mcp/internal/metrics"
+	"github.com/dmmcquay/katago-mcp/internal/ratelimit"
 	httpserver "github.com/dmmcquay/katago-mcp/internal/server"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -115,6 +117,12 @@ func main() {
 	// Create KataGo engine
 	engine := katago.NewEngine(&cfg.KataGo, logger)
 
+	// Create metrics collector
+	metricsCollector := metrics.NewCollector()
+
+	// Create rate limiter
+	rateLimiter := ratelimit.NewLimiter(&cfg.RateLimit, logger)
+
 	// Set up health checker
 	healthChecker := health.NewChecker(logger, cfg.Server.Version, GitCommit)
 
@@ -167,8 +175,12 @@ func main() {
 		server.WithLogging(),
 	)
 
+	// Create middleware
+	middleware := mcptools.NewMiddleware(logger, metricsCollector, rateLimiter)
+
 	// Create and register tools
 	toolsHandler := mcptools.NewToolsHandler(engine, logger)
+	toolsHandler.SetMiddleware(middleware)
 	toolsHandler.RegisterTools(mcpServer)
 
 	// Register health check tool
@@ -193,6 +205,18 @@ func main() {
 			status += "running\n"
 		} else {
 			status += "stopped\n"
+		}
+
+		// Add rate limit status
+		if rateLimiter != nil {
+			rlStatus := rateLimiter.GetStatus()
+			status += "\nRate Limiting:\n"
+			status += fmt.Sprintf("  Enabled: %v\n", rlStatus["enabled"])
+			if rlStatus["enabled"].(bool) {
+				status += fmt.Sprintf("  Requests/min: %d\n", rlStatus["requestsPerMin"])
+				status += fmt.Sprintf("  Burst size: %d\n", rlStatus["burstSize"])
+				status += fmt.Sprintf("  Active clients: %d\n", rlStatus["activeClients"])
+			}
 		}
 
 		return mcp.NewToolResultText(status), nil
