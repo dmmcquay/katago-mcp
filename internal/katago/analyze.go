@@ -115,8 +115,8 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		query["allowMoves"] = req.AllowMoves
 	}
 
-	// Send query
-	resp, err := e.sendQuery(query)
+	// Send query with caching
+	resp, err := e.sendQueryWithCache(query)
 	if err != nil {
 		return nil, err
 	}

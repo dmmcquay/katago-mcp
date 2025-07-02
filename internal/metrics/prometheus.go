@@ -36,6 +36,12 @@ type PrometheusCollector struct {
 	// Resource metrics
 	activeClients     prometheus.Gauge
 	activeConnections prometheus.Gauge
+
+	// Cache metrics
+	cacheHitsTotal   prometheus.Counter
+	cacheMissesTotal prometheus.Counter
+	cacheSize        prometheus.Gauge
+	cacheItems       prometheus.Gauge
 }
 
 // NewPrometheusCollector creates a new Prometheus metrics collector (singleton).
@@ -141,6 +147,32 @@ func NewPrometheusCollector() *PrometheusCollector {
 					Help: "Number of active connections",
 				},
 			),
+
+			// Cache metrics
+			cacheHitsTotal: promauto.NewCounter(
+				prometheus.CounterOpts{
+					Name: "katago_mcp_cache_hits_total",
+					Help: "Total number of cache hits",
+				},
+			),
+			cacheMissesTotal: promauto.NewCounter(
+				prometheus.CounterOpts{
+					Name: "katago_mcp_cache_misses_total",
+					Help: "Total number of cache misses",
+				},
+			),
+			cacheSize: promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: "katago_mcp_cache_size_bytes",
+					Help: "Current cache size in bytes",
+				},
+			),
+			cacheItems: promauto.NewGauge(
+				prometheus.GaugeOpts{
+					Name: "katago_mcp_cache_items",
+					Help: "Current number of items in cache",
+				},
+			),
 		}
 	})
 	return prometheusInstance
@@ -206,4 +238,20 @@ func (p *PrometheusCollector) SetActiveClients(count float64) {
 // SetActiveConnections sets the number of active connections.
 func (p *PrometheusCollector) SetActiveConnections(count float64) {
 	p.activeConnections.Set(count)
+}
+
+// RecordCacheHit records a cache hit.
+func (p *PrometheusCollector) RecordCacheHit() {
+	p.cacheHitsTotal.Inc()
+}
+
+// RecordCacheMiss records a cache miss.
+func (p *PrometheusCollector) RecordCacheMiss() {
+	p.cacheMissesTotal.Inc()
+}
+
+// SetCacheStats sets the current cache statistics.
+func (p *PrometheusCollector) SetCacheStats(items, sizeBytes float64) {
+	p.cacheItems.Set(items)
+	p.cacheSize.Set(sizeBytes)
 }

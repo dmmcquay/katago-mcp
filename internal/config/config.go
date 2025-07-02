@@ -20,6 +20,9 @@ type Config struct {
 
 	// Rate limiting configuration
 	RateLimit RateLimitConfig `json:"rateLimit"`
+
+	// Cache configuration
+	Cache CacheConfig `json:"cache"`
 }
 
 type KataGoConfig struct {
@@ -50,6 +53,13 @@ type RateLimitConfig struct {
 	PerToolLimits  map[string]int `json:"perToolLimits"`
 }
 
+type CacheConfig struct {
+	Enabled      bool  `json:"enabled"`
+	MaxItems     int   `json:"maxItems"`
+	MaxSizeBytes int64 `json:"maxSizeBytes"`
+	TTLSeconds   int   `json:"ttlSeconds"`
+}
+
 func Load(configPath string) (*Config, error) {
 	cfg := &Config{
 		// Default values
@@ -73,6 +83,12 @@ func Load(configPath string) (*Config, error) {
 			RequestsPerMin: 60,
 			BurstSize:      10,
 			PerToolLimits:  make(map[string]int),
+		},
+		Cache: CacheConfig{
+			Enabled:      true,
+			MaxItems:     1000,
+			MaxSizeBytes: 100 * 1024 * 1024, // 100MB
+			TTLSeconds:   3600,              // 1 hour
 		},
 	}
 
@@ -119,6 +135,11 @@ func (c *Config) applyEnvOverrides() {
 	// Rate limit settings
 	if v := os.Getenv("KATAGO_MCP_RATE_LIMIT_ENABLED"); v != "" {
 		c.RateLimit.Enabled = strings.EqualFold(v, "true")
+	}
+
+	// Cache settings
+	if v := os.Getenv("KATAGO_MCP_CACHE_ENABLED"); v != "" {
+		c.Cache.Enabled = strings.EqualFold(v, "true")
 	}
 }
 

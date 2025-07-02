@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dmmcquay/katago-mcp/internal/cache"
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
 	"github.com/dmmcquay/katago-mcp/internal/retry"
@@ -26,7 +27,7 @@ type Supervisor struct {
 }
 
 // NewSupervisor creates a new KataGo supervisor.
-func NewSupervisor(cfg *config.KataGoConfig, logger logging.ContextLogger) *Supervisor {
+func NewSupervisor(cfg *config.KataGoConfig, logger logging.ContextLogger, cacheManager *cache.Manager) *Supervisor {
 	retryConfig := retry.Config{
 		MaxAttempts:  0, // Infinite retries
 		InitialDelay: 1 * time.Second,
@@ -36,7 +37,7 @@ func NewSupervisor(cfg *config.KataGoConfig, logger logging.ContextLogger) *Supe
 	}
 
 	return &Supervisor{
-		engine:              NewEngine(cfg, logger),
+		engine:              NewEngine(cfg, logger, cacheManager),
 		config:              cfg,
 		logger:              logger,
 		retryManager:        retry.NewManager(retryConfig),

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dmmcquay/katago-mcp/internal/cache"
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
 	"github.com/dmmcquay/katago-mcp/internal/metrics"
@@ -21,6 +22,7 @@ type Engine struct {
 	config     *config.KataGoConfig
 	logger     logging.ContextLogger
 	prometheus *metrics.PrometheusCollector
+	cache      *cache.Manager
 
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
@@ -77,11 +79,12 @@ type ErrorResponse struct {
 }
 
 // NewEngine creates a new KataGo engine.
-func NewEngine(cfg *config.KataGoConfig, logger logging.ContextLogger) *Engine {
+func NewEngine(cfg *config.KataGoConfig, logger logging.ContextLogger, cacheManager *cache.Manager) *Engine {
 	return &Engine{
 		config:      cfg,
 		logger:      logger,
 		prometheus:  metrics.NewPrometheusCollector(),
+		cache:       cacheManager,
 		pending:     make(map[string]chan *Response),
 		stopCh:      make(chan struct{}),
 		healthCheck: make(chan struct{}, 1),
@@ -351,6 +354,43 @@ func (e *Engine) healthCheckRoutine() {
 			}
 		}
 	}
+}
+
+// sendQueryWithCache sends a query to KataGo with caching support.
+func (e *Engine) sendQueryWithCache(query map[string]interface{}) (*Response, error) {
+	// Check if caching is enabled and this is a cacheable query
+	if e.cache != nil && e.cache.IsEnabled() {
+		// Generate cache key
+		cacheKey, err := e.cache.CacheKey(query)
+		if err == nil {
+			// Try to get from cache
+			if cached, ok := e.cache.Get(cacheKey); ok {
+				if resp, ok := cached.(*Response); ok {
+					e.logger.Debug("Cache hit", "key", cacheKey)
+					e.prometheus.RecordCacheHit()
+					return resp, nil
+				}
+			}
+			e.prometheus.RecordCacheMiss()
+
+			// Not in cache, execute query
+			resp, err := e.sendQuery(query)
+			if err != nil {
+				return nil, err
+			}
+
+			// Cache the successful response
+			size := cache.EstimateSize(resp)
+			e.cache.Put(cacheKey, resp, size)
+
+			return resp, nil
+		} else {
+			e.logger.Warn("Failed to generate cache key", "error", err)
+		}
+	}
+
+	// No caching, just send query
+	return e.sendQuery(query)
 }
 
 // sendQuery sends a query to KataGo and waits for response.

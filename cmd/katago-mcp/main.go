@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dmmcquay/katago-mcp/internal/cache"
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/health"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
@@ -117,8 +118,11 @@ func main() {
 		cfg.KataGo.ConfigPath = detection.ConfigPath
 	}
 
+	// Create cache manager
+	cacheManager := cache.NewManager(&cfg.Cache, logger)
+
 	// Create KataGo supervisor with auto-restart
-	supervisor := katago.NewSupervisor(&cfg.KataGo, logger)
+	supervisor := katago.NewSupervisor(&cfg.KataGo, logger, cacheManager)
 
 	// Start the supervisor
 	if err := supervisor.Start(context.Background()); err != nil {

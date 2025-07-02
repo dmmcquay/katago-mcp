@@ -20,7 +20,7 @@ func TestAnalyzePositionTool(t *testing.T) {
 		MaxTime:    0.1,
 	}
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := katago.NewEngine(cfg, logger)
+	engine := katago.NewEngine(cfg, logger, nil)
 
 	handler := NewToolsHandler(engine, logger)
 
@@ -55,7 +55,7 @@ func TestEngineStatusTool(t *testing.T) {
 		MaxTime:    0.1,
 	}
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := katago.NewEngine(cfg, logger)
+	engine := katago.NewEngine(cfg, logger, nil)
 
 	handler := NewToolsHandler(engine, logger)
 
@@ -89,7 +89,7 @@ func TestStartStopEngineTool(t *testing.T) {
 		MaxTime:    0.1,
 	}
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := katago.NewEngine(cfg, logger)
+	engine := katago.NewEngine(cfg, logger, nil)
 
 	handler := NewToolsHandler(engine, logger)
 
@@ -133,7 +133,7 @@ func TestAnalyzePositionArguments(t *testing.T) {
 		MaxTime:    0.1,
 	}
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := katago.NewEngine(cfg, logger)
+	engine := katago.NewEngine(cfg, logger, nil)
 
 	handler := NewToolsHandler(engine, logger)
 
