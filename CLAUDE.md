@@ -89,7 +89,15 @@ The server implements these KataGo analysis tools:
 
 8. **Planning and Phases**: When creating implementation plans or project phases, do not include time measurements (like "Week 1", "2 weeks", etc.). Focus on the logical progression of phases and let the user determine timelines.
 
-9. **Pre-Push Validation**: Always run the PR checks that will happen in CI locally (linter, tests, e2e, security) before pushing a commit/PR. Use `make ci` or individual commands (`make lint`, `make test`, `make build`) to validate your changes locally first. This prevents CI failures and ensures code quality.
+9. **Pre-Push Validation**: ALWAYS run ALL the following checks before pushing:
+   - `gofmt -l .` - Must return NO output (empty means all files are formatted)
+   - `make test` - All tests must pass
+   - `make lint` - Must complete without errors
+   - `make build` - Must build successfully
+   - Or simply run `make ci` which runs all checks
+   
+   IMPORTANT: If `gofmt -l .` returns ANY filenames, run `go fmt ./...` to fix them. 
+   Never assume "no output" from make commands means success - verify explicitly.
 
 10. **PR Workflow**: 
     - Create feature branches for all changes
