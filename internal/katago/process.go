@@ -13,12 +13,14 @@ import (
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
+	"github.com/dmmcquay/katago-mcp/internal/metrics"
 )
 
 // Engine manages a KataGo process for analysis.
 type Engine struct {
-	config *config.KataGoConfig
-	logger logging.ContextLogger
+	config     *config.KataGoConfig
+	logger     logging.ContextLogger
+	prometheus *metrics.PrometheusCollector
 
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
@@ -79,6 +81,7 @@ func NewEngine(cfg *config.KataGoConfig, logger logging.ContextLogger) *Engine {
 	return &Engine{
 		config:      cfg,
 		logger:      logger,
+		prometheus:  metrics.NewPrometheusCollector(),
 		pending:     make(map[string]chan *Response),
 		stopCh:      make(chan struct{}),
 		healthCheck: make(chan struct{}, 1),
@@ -136,6 +139,13 @@ func (e *Engine) Start(ctx context.Context) error {
 		"model", e.config.ModelPath,
 		"threads", e.config.NumThreads,
 	)
+
+	// Record engine status
+	version := "unknown"
+	if detection, err := DetectKataGo(); err == nil && detection.Version != "" {
+		version = detection.Version
+	}
+	e.prometheus.RecordEngineStatus(true, version)
 
 	// Start reader goroutines
 	go e.readStdout()
@@ -214,6 +224,7 @@ func (e *Engine) Stop() error {
 	e.pending = make(map[string]chan *Response)
 
 	e.logger.Info("KataGo engine stopped")
+	e.prometheus.RecordEngineStatus(false, "")
 	return nil
 }
 
@@ -344,6 +355,12 @@ func (e *Engine) healthCheckRoutine() {
 
 // sendQuery sends a query to KataGo and waits for response.
 func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
+	start := time.Now()
+	queryType := "unknown"
+	if action, ok := query["action"].(string); ok {
+		queryType = action
+	}
+
 	e.mu.Lock()
 	if !e.running {
 		e.mu.Unlock()
@@ -378,6 +395,7 @@ func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
 	// Wait for response with timeout
 	select {
 	case resp := <-respCh:
+		e.prometheus.RecordEngineQuery(queryType, time.Since(start).Seconds())
 		if resp.Error != nil {
 			switch v := resp.Error.(type) {
 			case string:
@@ -407,6 +425,7 @@ func (e *Engine) Ping(ctx context.Context) error {
 	defer e.mu.Unlock()
 
 	if !e.running {
+		e.prometheus.RecordEngineHealthCheck(false)
 		return fmt.Errorf("engine not running")
 	}
 
@@ -415,11 +434,14 @@ func (e *Engine) Ping(ctx context.Context) error {
 		// Try to check process state without killing it
 		// On Unix, sending signal 0 checks if process exists
 		if err := e.cmd.Process.Signal(syscall.Signal(0)); err != nil {
+			e.prometheus.RecordEngineHealthCheck(false)
 			return fmt.Errorf("engine process not responding: %w", err)
 		}
 	} else {
+		e.prometheus.RecordEngineHealthCheck(false)
 		return fmt.Errorf("engine process not found")
 	}
 
+	e.prometheus.RecordEngineHealthCheck(true)
 	return nil
 }
