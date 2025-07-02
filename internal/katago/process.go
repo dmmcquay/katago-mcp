@@ -150,7 +150,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops the KataGo process.
+// Stop stops the KataGo process gracefully.
 func (e *Engine) Stop() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -159,11 +159,14 @@ func (e *Engine) Stop() error {
 		return nil
 	}
 
+	e.logger.Info("Stopping KataGo engine gracefully")
 	close(e.stopCh)
 	e.running = false
 
-	// Close stdin to signal shutdown
+	// Send quit command if possible
 	if e.stdin != nil {
+		// Try to send quit command first for graceful shutdown
+		_, _ = e.stdin.Write([]byte(`{"id":"quit","action":"quit"}` + "\n"))
 		_ = e.stdin.Close()
 	}
 
@@ -179,13 +182,24 @@ func (e *Engine) Stop() error {
 
 	select {
 	case err := <-done:
-		if err != nil && err.Error() != "signal: killed" {
+		if err != nil && err.Error() != "signal: killed" && err.Error() != "signal: terminated" {
 			e.logger.Warn("KataGo process exited with error", "error", err)
 		}
-	case <-time.After(5 * time.Second):
-		// Force kill if not exited
+	case <-time.After(10 * time.Second):
+		// Try SIGTERM first
 		if e.cmd != nil && e.cmd.Process != nil {
-			_ = e.cmd.Process.Kill()
+			e.logger.Warn("KataGo not responding to quit, sending SIGTERM")
+			_ = e.cmd.Process.Signal(syscall.SIGTERM)
+
+			// Wait a bit more
+			select {
+			case <-done:
+				// Process terminated
+			case <-time.After(5 * time.Second):
+				// Force kill if still not exited
+				e.logger.Warn("KataGo still running, force killing")
+				_ = e.cmd.Process.Kill()
+			}
 		}
 	}
 
