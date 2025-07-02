@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -106,15 +107,34 @@ func (l *StructuredLogger) WithField(key string, value interface{}) ContextLogge
 	return l.WithFields(map[string]interface{}{key: value})
 }
 
+// addArgsAsFields adds args as key-value pairs to the log entry.
+func (l *StructuredLogger) addArgsAsFields(entry *LogEntry, args []interface{}) {
+	if len(args) == 0 {
+		return
+	}
+
+	// Initialize fields map if needed
+	if entry.Fields == nil {
+		entry.Fields = make(map[string]interface{})
+	}
+
+	// Process args as key-value pairs
+	for i := 0; i < len(args)-1; i += 2 {
+		if key, ok := args[i].(string); ok {
+			entry.Fields[key] = args[i+1]
+		}
+	}
+
+	// If we have an odd number of args, add the last one as "extra"
+	if len(args)%2 == 1 {
+		entry.Fields["extra"] = args[len(args)-1]
+	}
+}
+
 // log writes a structured log entry.
 func (l *StructuredLogger) log(level Level, message string, args ...interface{}) {
 	if !l.shouldLog(level) {
 		return
-	}
-
-	// Format message if args provided
-	if len(args) > 0 {
-		message = fmt.Sprintf(message, args...)
 	}
 
 	entry := LogEntry{
@@ -125,6 +145,38 @@ func (l *StructuredLogger) log(level Level, message string, args ...interface{})
 		Message:   message,
 	}
 
+	// Handle args as key-value pairs or printf style
+	if len(args) > 0 {
+		// Check if message contains format verbs
+		if strings.Contains(message, "%") {
+			// Count format verbs
+			verbCount := 0
+			for i := 0; i < len(message)-1; i++ {
+				if message[i] == '%' && message[i+1] != '%' {
+					verbCount++
+				}
+			}
+
+			// If we have format verbs and enough args to satisfy them
+			if verbCount > 0 && len(args) >= verbCount {
+				// Extract printf args
+				printfArgs := args[:verbCount]
+				entry.Message = fmt.Sprintf(message, printfArgs...)
+
+				// Remaining args are key-value pairs
+				if len(args) > verbCount {
+					l.addArgsAsFields(&entry, args[verbCount:])
+				}
+			} else {
+				// Not enough args for printf, treat all as key-value
+				l.addArgsAsFields(&entry, args)
+			}
+		} else {
+			// No format verbs, treat all args as key-value pairs
+			l.addArgsAsFields(&entry, args)
+		}
+	}
+
 	// Add caller information
 	if _, file, line, ok := runtime.Caller(2); ok {
 		entry.Caller = fmt.Sprintf("%s:%d", file, line)
@@ -133,7 +185,10 @@ func (l *StructuredLogger) log(level Level, message string, args ...interface{})
 	// Add fields from logger
 	l.mu.RLock()
 	if len(l.fields) > 0 {
-		entry.Fields = make(map[string]interface{})
+		// Initialize fields map if not already done
+		if entry.Fields == nil {
+			entry.Fields = make(map[string]interface{})
+		}
 		for k, v := range l.fields {
 			// Handle special fields
 			switch k {
