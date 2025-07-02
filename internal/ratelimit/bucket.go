@@ -104,4 +104,3 @@ func (b *TokenBucket) Reset() {
 	b.tokens = float64(b.capacity)
 	b.lastRefill = time.Now()
 }
-

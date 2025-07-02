@@ -115,4 +115,3 @@ func (c *Collector) Reset() {
 	c.rateLimitHits = 0
 	c.rateLimitTotal = 0
 }
-
