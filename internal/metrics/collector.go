@@ -8,12 +8,12 @@ import (
 // Collector collects metrics for the application.
 type Collector struct {
 	mu sync.RWMutex
-	
+
 	// Tool metrics
-	toolCalls      map[string]int64
-	toolErrors     map[string]int64
-	toolDurations  map[string][]time.Duration
-	
+	toolCalls     map[string]int64
+	toolErrors    map[string]int64
+	toolDurations map[string][]time.Duration
+
 	// Rate limit metrics
 	rateLimitHits  int64
 	rateLimitTotal int64
@@ -32,19 +32,19 @@ func NewCollector() *Collector {
 func (c *Collector) RecordToolCall(tool, status string, duration time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.toolCalls[tool]++
-	
+
 	if status == "error" {
 		c.toolErrors[tool]++
 	}
-	
+
 	if status == "rate_limited" {
 		c.rateLimitHits++
 	}
-	
+
 	c.rateLimitTotal++
-	
+
 	// Keep last 100 durations for each tool
 	durations := c.toolDurations[tool]
 	durations = append(durations, duration)
@@ -58,9 +58,9 @@ func (c *Collector) RecordToolCall(tool, status string, duration time.Duration) 
 func (c *Collector) GetStats() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	stats := make(map[string]interface{})
-	
+
 	// Tool stats
 	toolStats := make(map[string]interface{})
 	for tool, calls := range c.toolCalls {
@@ -69,7 +69,7 @@ func (c *Collector) GetStats() map[string]interface{} {
 		if calls > 0 {
 			errorRate = float64(errors) / float64(calls)
 		}
-		
+
 		// Calculate average duration
 		var totalDuration time.Duration
 		durations := c.toolDurations[tool]
@@ -80,7 +80,7 @@ func (c *Collector) GetStats() map[string]interface{} {
 		if len(durations) > 0 {
 			avgDuration = totalDuration / time.Duration(len(durations))
 		}
-		
+
 		toolStats[tool] = map[string]interface{}{
 			"calls":           calls,
 			"errors":          errors,
@@ -89,7 +89,7 @@ func (c *Collector) GetStats() map[string]interface{} {
 		}
 	}
 	stats["tools"] = toolStats
-	
+
 	// Rate limit stats
 	rateLimitRate := float64(0)
 	if c.rateLimitTotal > 0 {
@@ -100,7 +100,7 @@ func (c *Collector) GetStats() map[string]interface{} {
 		"total": c.rateLimitTotal,
 		"rate":  rateLimitRate,
 	}
-	
+
 	return stats
 }
 
@@ -108,10 +108,11 @@ func (c *Collector) GetStats() map[string]interface{} {
 func (c *Collector) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.toolCalls = make(map[string]int64)
 	c.toolErrors = make(map[string]int64)
 	c.toolDurations = make(map[string][]time.Duration)
 	c.rateLimitHits = 0
 	c.rateLimitTotal = 0
 }
+

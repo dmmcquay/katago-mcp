@@ -83,7 +83,7 @@ func (l *Limiter) Allow(clientID, toolName string) (bool, error) {
 	if hasToolLimit && !toolBucket.Allow(1) {
 		// Return the token to global bucket since we're rejecting
 		l.globalBucket.Allow(-1) // Add token back
-		
+
 		l.logger.Warn("Tool rate limit exceeded",
 			"client", clientID,
 			"tool", toolName,
@@ -151,7 +151,7 @@ func (l *Limiter) checkClientLimit(clientID, toolName string) (bool, error) {
 		if !toolBucket.Allow(1) {
 			// Return token to client's global bucket
 			client.globalBucket.Allow(-1)
-			
+
 			l.logger.Warn("Client tool rate limit exceeded",
 				"client", clientID,
 				"tool", toolName,
@@ -184,11 +184,11 @@ func (l *Limiter) Reset() {
 	defer l.mu.Unlock()
 
 	l.globalBucket.Reset()
-	
+
 	for _, bucket := range l.toolBuckets {
 		bucket.Reset()
 	}
-	
+
 	// Reset all client limits
 	for _, client := range l.clientLimits {
 		client.globalBucket.Reset()
@@ -232,21 +232,24 @@ func (l *Limiter) GetStatus() map[string]interface{} {
 	defer l.mu.RUnlock()
 
 	status := map[string]interface{}{
-		"enabled":         true,
-		"requestsPerMin":  l.config.RequestsPerMin,
-		"burstSize":       l.config.BurstSize,
-		"globalTokens":    l.globalBucket.Tokens(),
-		"activeClients":   len(l.clientLimits),
-		"toolLimits":      make(map[string]interface{}),
+		"enabled":        true,
+		"requestsPerMin": l.config.RequestsPerMin,
+		"burstSize":      l.config.BurstSize,
+		"globalTokens":   l.globalBucket.Tokens(),
+		"activeClients":  len(l.clientLimits),
+		"toolLimits":     make(map[string]interface{}),
 	}
 
 	// Add per-tool status
 	for tool, bucket := range l.toolBuckets {
-		status["toolLimits"].(map[string]interface{})[tool] = map[string]interface{}{
-			"limit":  l.config.PerToolLimits[tool],
-			"tokens": bucket.Tokens(),
+		if toolLimits, ok := status["toolLimits"].(map[string]interface{}); ok {
+			toolLimits[tool] = map[string]interface{}{
+				"limit":  l.config.PerToolLimits[tool],
+				"tokens": bucket.Tokens(),
+			}
 		}
 	}
 
 	return status
 }
+

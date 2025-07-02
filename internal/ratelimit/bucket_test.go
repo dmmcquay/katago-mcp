@@ -100,7 +100,7 @@ func TestTokenBucket(t *testing.T) {
 	t.Run("Reset", func(t *testing.T) {
 		bucket := NewTokenBucket(10, 1.0)
 		bucket.Allow(10) // Consume all
-		
+
 		bucket.Reset()
 		if bucket.tokens != 10.0 {
 			t.Errorf("Expected full capacity after reset, got %f", bucket.tokens)
@@ -136,3 +136,4 @@ func TestTokenBucket(t *testing.T) {
 		}
 	})
 }
+

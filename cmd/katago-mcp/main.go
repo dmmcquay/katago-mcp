@@ -212,7 +212,7 @@ func main() {
 			rlStatus := rateLimiter.GetStatus()
 			status += "\nRate Limiting:\n"
 			status += fmt.Sprintf("  Enabled: %v\n", rlStatus["enabled"])
-			if rlStatus["enabled"].(bool) {
+			if enabled, ok := rlStatus["enabled"].(bool); ok && enabled {
 				status += fmt.Sprintf("  Requests/min: %d\n", rlStatus["requestsPerMin"])
 				status += fmt.Sprintf("  Burst size: %d\n", rlStatus["burstSize"])
 				status += fmt.Sprintf("  Active clients: %d\n", rlStatus["activeClients"])

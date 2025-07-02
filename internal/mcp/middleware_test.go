@@ -165,8 +165,8 @@ func TestMiddleware(t *testing.T) {
 
 			wrapped := middleware.WrapToolWithRetry("testTool", handler, 3)
 			req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{},
-		}
+				Params: mcp.CallToolParams{},
+			}
 
 			result, err := wrapped(context.Background(), req)
 			if err != nil {
@@ -187,8 +187,8 @@ func TestMiddleware(t *testing.T) {
 
 			wrapped := middleware.WrapToolWithRetry("testTool", handler, 2)
 			req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{},
-		}
+				Params: mcp.CallToolParams{},
+			}
 
 			result, err := wrapped(context.Background(), req)
 			if err == nil {
@@ -211,8 +211,8 @@ func TestMiddleware(t *testing.T) {
 
 			wrapped := middleware.WrapToolWithRetry("testTool", handler, 3)
 			req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{},
-		}
+				Params: mcp.CallToolParams{},
+			}
 
 			_, err := wrapped(context.Background(), req)
 			if err == nil {
@@ -233,8 +233,8 @@ func TestMiddleware(t *testing.T) {
 
 			wrapped := middleware.WrapToolWithRetry("testTool", handler, 2)
 			req := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{},
-		}
+				Params: mcp.CallToolParams{},
+			}
 
 			_, _ = wrapped(context.Background(), req)
 
@@ -276,3 +276,4 @@ func findSubstring(s, substr string) bool {
 	}
 	return false
 }
+

@@ -28,7 +28,7 @@ func NewMiddleware(logger logging.ContextLogger, metrics *metrics.Collector, rat
 	}
 }
 
-// ToolHandler is the function signature for MCP tool handlers
+// ToolHandler is the function signature for MCP tool handlers.
 type ToolHandler func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error)
 
 // WrapTool wraps a tool handler with middleware functionality.
@@ -95,7 +95,12 @@ func (m *Middleware) WrapToolWithRetry(toolName string, handler ToolHandler, max
 		for attempt := 0; attempt <= maxRetries; attempt++ {
 			if attempt > 0 {
 				// Exponential backoff between retries
-				backoff := time.Duration(1<<uint(attempt-1)) * 100 * time.Millisecond
+				// Safe conversion: attempt is always >= 1 and <= maxRetries (small number)
+				shiftAmount := attempt - 1
+				if shiftAmount > 10 { // Prevent overflow for large shift amounts
+					shiftAmount = 10
+				}
+				backoff := time.Duration(1<<uint(shiftAmount)) * 100 * time.Millisecond // #nosec G115 -- shiftAmount is bounded
 				m.logger.Debug("Retrying tool request",
 					"tool", toolName,
 					"attempt", attempt,
