@@ -440,4 +440,3 @@ func TestLRU_AnalysisCache(t *testing.T) {
 	assert.Equal(t, result1.WinRate, retrieved.WinRate)
 	assert.Equal(t, result1.Moves, retrieved.Moves)
 }
-

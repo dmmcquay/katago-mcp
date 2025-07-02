@@ -36,7 +36,7 @@ func TestEngineWithRealKataGo(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	ctx := context.Background()
 

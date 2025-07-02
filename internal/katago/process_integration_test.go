@@ -27,7 +27,7 @@ func TestEngineLifecycle(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	ctx := context.Background()
 
@@ -79,7 +79,7 @@ func TestEngineAnalysis(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	ctx := context.Background()
 
@@ -153,7 +153,7 @@ func TestEngineContextCancellation(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -205,7 +205,7 @@ func TestEngineWithEnvironment(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	// This should work even if KataGo isn't installed in the temp directory
 	// The engine should handle the error gracefully
@@ -233,7 +233,7 @@ func TestEnginePing(t *testing.T) {
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
-	engine := NewEngine(cfg, logger)
+	engine := NewEngine(cfg, logger, nil)
 
 	ctx := context.Background()
 
