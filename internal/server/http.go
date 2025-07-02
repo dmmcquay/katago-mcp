@@ -7,33 +7,45 @@ import (
 
 	"github.com/dmmcquay/katago-mcp/internal/health"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
+	"github.com/dmmcquay/katago-mcp/internal/metrics"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// HTTPServer provides HTTP endpoints for health checks.
+// HTTPServer provides HTTP endpoints for health checks and metrics.
 type HTTPServer struct {
-	server  *http.Server
-	logger  logging.ContextLogger
-	checker *health.Checker
+	server     *http.Server
+	logger     logging.ContextLogger
+	checker    *health.Checker
+	prometheus *metrics.PrometheusCollector
 }
 
-// NewHTTPServer creates a new HTTP server for health checks.
+// NewHTTPServer creates a new HTTP server for health checks and metrics.
 func NewHTTPServer(addr string, logger logging.ContextLogger, checker *health.Checker) *HTTPServer {
+	prometheus := metrics.NewPrometheusCollector()
+
 	mux := http.NewServeMux()
 
 	// Register health endpoints
 	mux.HandleFunc("/health", checker.LivenessHandler())
 	mux.HandleFunc("/ready", checker.ReadinessHandler())
 
+	// Register metrics endpoint
+	mux.Handle("/metrics", promhttp.Handler())
+
+	// Apply middleware
+	handler := PrometheusMiddleware(prometheus)(mux)
+
 	return &HTTPServer{
 		server: &http.Server{
 			Addr:         addr,
-			Handler:      mux,
+			Handler:      handler,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  60 * time.Second,
 		},
-		logger:  logger,
-		checker: checker,
+		logger:     logger,
+		checker:    checker,
+		prometheus: prometheus,
 	}
 }
 

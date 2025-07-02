@@ -16,14 +16,16 @@ import (
 type Middleware struct {
 	logger      logging.ContextLogger
 	metrics     *metrics.Collector
+	prometheus  *metrics.PrometheusCollector
 	rateLimiter *ratelimit.Limiter
 }
 
 // NewMiddleware creates a new middleware instance.
-func NewMiddleware(logger logging.ContextLogger, metrics *metrics.Collector, rateLimiter *ratelimit.Limiter) *Middleware {
+func NewMiddleware(logger logging.ContextLogger, metricsCollector *metrics.Collector, rateLimiter *ratelimit.Limiter) *Middleware {
 	return &Middleware{
 		logger:      logger,
-		metrics:     metrics,
+		metrics:     metricsCollector,
+		prometheus:  metrics.NewPrometheusCollector(),
 		rateLimiter: rateLimiter,
 	}
 }
@@ -49,6 +51,7 @@ func (m *Middleware) WrapTool(toolName string, handler ToolHandler) ToolHandler 
 		// Check rate limits
 		if m.rateLimiter != nil {
 			allowed, err := m.rateLimiter.Allow(clientID, toolName)
+			m.prometheus.RecordRateLimit(clientID, toolName, !allowed)
 			if !allowed {
 				m.logger.Warn("Rate limit exceeded",
 					"tool", toolName,
@@ -56,6 +59,7 @@ func (m *Middleware) WrapTool(toolName string, handler ToolHandler) ToolHandler 
 					"error", err,
 				)
 				m.metrics.RecordToolCall(toolName, "rate_limited", time.Since(start))
+				m.prometheus.RecordToolCall(toolName, "rate_limited", time.Since(start).Seconds())
 				return nil, fmt.Errorf("rate limit exceeded for tool %s: %w", toolName, err)
 			}
 		}
@@ -64,6 +68,7 @@ func (m *Middleware) WrapTool(toolName string, handler ToolHandler) ToolHandler 
 		result, err := handler(ctx, request)
 
 		// Record metrics
+		duration := time.Since(start)
 		status := "success"
 		if err != nil {
 			status = "error"
@@ -71,16 +76,17 @@ func (m *Middleware) WrapTool(toolName string, handler ToolHandler) ToolHandler 
 				"tool", toolName,
 				"client", clientID,
 				"error", err,
-				"duration", time.Since(start),
+				"duration", duration,
 			)
 		} else {
 			m.logger.Info("Tool request completed",
 				"tool", toolName,
 				"client", clientID,
-				"duration", time.Since(start),
+				"duration", duration,
 			)
 		}
-		m.metrics.RecordToolCall(toolName, status, time.Since(start))
+		m.metrics.RecordToolCall(toolName, status, duration)
+		m.prometheus.RecordToolCall(toolName, status, duration.Seconds())
 
 		return result, err
 	}
