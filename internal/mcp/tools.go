@@ -15,12 +15,12 @@ import (
 
 // ToolsHandler manages MCP tools for KataGo.
 type ToolsHandler struct {
-	engine *katago.Engine
+	engine katago.EngineInterface
 	logger logging.ContextLogger
 }
 
 // NewToolsHandler creates a new tools handler.
-func NewToolsHandler(engine *katago.Engine, logger logging.ContextLogger) *ToolsHandler {
+func NewToolsHandler(engine katago.EngineInterface, logger logging.ContextLogger) *ToolsHandler {
 	return &ToolsHandler{
 		engine: engine,
 		logger: logger,

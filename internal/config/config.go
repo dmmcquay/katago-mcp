@@ -35,6 +35,7 @@ type ServerConfig struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Description string `json:"description"`
+	HealthAddr  string `json:"healthAddr"` // Address for health check endpoints
 }
 
 type LoggingConfig struct {

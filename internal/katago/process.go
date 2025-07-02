@@ -8,6 +8,7 @@ import (
 	"io"
 	"os/exec"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
@@ -384,4 +385,27 @@ func (e *Engine) sendQuery(query map[string]interface{}) (*Response, error) {
 		e.logger.Error("Query timeout", "id", id, "timeout", e.config.MaxTime*2)
 		return nil, fmt.Errorf("query timeout after %.1f seconds", e.config.MaxTime*2)
 	}
+}
+
+// Ping checks if the engine is responsive.
+func (e *Engine) Ping(ctx context.Context) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	if !e.running {
+		return fmt.Errorf("engine not running")
+	}
+
+	// Check if the process is still alive
+	if e.cmd != nil && e.cmd.Process != nil {
+		// Try to check process state without killing it
+		// On Unix, sending signal 0 checks if process exists
+		if err := e.cmd.Process.Signal(syscall.Signal(0)); err != nil {
+			return fmt.Errorf("engine process not responding: %w", err)
+		}
+	} else {
+		return fmt.Errorf("engine process not found")
+	}
+
+	return nil
 }

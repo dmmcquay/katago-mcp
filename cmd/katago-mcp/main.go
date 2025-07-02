@@ -7,11 +7,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
+	"github.com/dmmcquay/katago-mcp/internal/health"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
 	"github.com/dmmcquay/katago-mcp/internal/logging"
 	mcptools "github.com/dmmcquay/katago-mcp/internal/mcp"
+	httpserver "github.com/dmmcquay/katago-mcp/internal/server"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -112,6 +115,29 @@ func main() {
 	// Create KataGo engine
 	engine := katago.NewEngine(&cfg.KataGo, logger)
 
+	// Set up health checker
+	healthChecker := health.NewChecker(logger, cfg.Server.Version, GitCommit)
+
+	// Register KataGo health check
+	healthChecker.RegisterCheck("katago", func(ctx context.Context) error {
+		return engine.Ping(ctx)
+	})
+
+	// Start HTTP health check server
+	healthAddr := os.Getenv("KATAGO_HEALTH_ADDR")
+	if healthAddr == "" {
+		healthAddr = cfg.Server.HealthAddr
+	}
+	if healthAddr == "" {
+		healthAddr = ":8080" // Default health check port
+	}
+	httpServer := httpserver.NewHTTPServer(healthAddr, logger, healthChecker)
+	if err := httpServer.Start(); err != nil {
+		logger.Error("Failed to start health check server", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("Health check server started", "addr", healthAddr)
+
 	// Set up context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -123,6 +149,14 @@ func main() {
 		<-sigCh
 		logger.Info("Shutting down...")
 		cancel()
+
+		// Stop health check server
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := httpServer.Stop(shutdownCtx); err != nil {
+			logger.Error("Failed to stop health check server", "error", err)
+		}
+
 		_ = engine.Stop()
 	}()
 

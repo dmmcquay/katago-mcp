@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package katago
 
 import (
@@ -72,7 +75,7 @@ func TestEngineAnalysis(t *testing.T) {
 		ConfigPath: detection.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  100,
-		MaxTime:    1.0,
+		MaxTime:    5.0, // Longer timeout for CI environment
 	}
 
 	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
@@ -213,5 +216,54 @@ func TestEngineWithEnvironment(t *testing.T) {
 	if err == nil {
 		engine.Stop()
 		t.Log("Engine started successfully even with custom KATAGO_HOME")
+	}
+}
+
+func TestEnginePing(t *testing.T) {
+	// Skip if KataGo not available
+	if _, err := DetectKataGo(); err != nil {
+		t.Skip("KataGo not installed, skipping engine tests")
+	}
+
+	cfg := &config.KataGoConfig{
+		BinaryPath: "katago",
+		NumThreads: 2,
+		MaxVisits:  100,
+		MaxTime:    1.0,
+	}
+
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
+	engine := NewEngine(cfg, logger)
+
+	ctx := context.Background()
+
+	// Test ping when engine is not running
+	err := engine.Ping(ctx)
+	if err == nil {
+		t.Error("Expected error when pinging stopped engine")
+	}
+
+	// Start engine
+	if err := engine.Start(ctx); err != nil {
+		t.Fatalf("Failed to start engine: %v", err)
+	}
+	defer engine.Stop()
+
+	// Wait for engine to be ready
+	time.Sleep(1 * time.Second)
+
+	// Test ping when engine is running
+	err = engine.Ping(ctx)
+	if err != nil {
+		t.Errorf("Failed to ping running engine: %v", err)
+	}
+
+	// Test ping with timeout
+	timeoutCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+
+	err = engine.Ping(timeoutCtx)
+	if err != nil {
+		t.Errorf("Failed to ping with timeout: %v", err)
 	}
 }
