@@ -117,12 +117,21 @@ func main() {
 		cfg.KataGo.ConfigPath = detection.ConfigPath
 	}
 
-	// Create KataGo engine
-	engine := katago.NewEngine(&cfg.KataGo, logger)
+	// Create KataGo supervisor with auto-restart
+	supervisor := katago.NewSupervisor(&cfg.KataGo, logger)
 
-	// Register KataGo engine shutdown
-	shutdownManager.Register("katago-engine", func(ctx context.Context) error {
-		return engine.Stop()
+	// Start the supervisor
+	if err := supervisor.Start(context.Background()); err != nil {
+		logger.Error("Failed to start KataGo supervisor", "error", err)
+		os.Exit(1)
+	}
+
+	// Get the engine from supervisor
+	engine := supervisor.GetEngine()
+
+	// Register KataGo supervisor shutdown
+	shutdownManager.Register("katago-supervisor", func(ctx context.Context) error {
+		return supervisor.Stop()
 	})
 
 	// Create metrics collector
