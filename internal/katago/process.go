@@ -301,8 +301,9 @@ func (e *Engine) readStdout() {
 				ch <- &response
 				close(ch)
 				delete(e.pending, response.ID)
-			} else {
-				e.logger.Warn("Received response for unknown query", "id", response.ID)
+			} else if response.ID != "" {
+				// This can happen during shutdown when responses arrive after cleanup
+				e.logger.Debug("Received response for unknown query", "id", response.ID)
 			}
 			e.mu.Unlock()
 		}

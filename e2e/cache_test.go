@@ -33,7 +33,7 @@ func TestAnalysisCache(t *testing.T) {
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  50, // Lower visits for faster tests
-		MaxTime:    5.0,
+		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
 	engine := katago.NewEngine(cfg, env.Logger, cacheManager)
@@ -129,7 +129,7 @@ func TestCacheEviction(t *testing.T) {
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  20, // Very low for speed
-		MaxTime:    2.0,
+		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
 	engine := katago.NewEngine(cfg, env.Logger, cacheManager)
@@ -210,7 +210,7 @@ func TestCacheTTL(t *testing.T) {
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  20,
-		MaxTime:    2.0,
+		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
 	engine := katago.NewEngine(cfg, env.Logger, cacheManager)
@@ -279,7 +279,7 @@ func TestCacheDisabled(t *testing.T) {
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
 		MaxVisits:  20,
-		MaxTime:    2.0,
+		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
 	engine := katago.NewEngine(cfg, env.Logger, cacheManager)
