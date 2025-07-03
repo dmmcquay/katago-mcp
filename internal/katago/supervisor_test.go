@@ -86,7 +86,7 @@ func TestSupervisor(t *testing.T) {
 
 	t.Run("start and stop", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}
-		supervisor := NewSupervisor(cfg, logger)
+		supervisor := NewSupervisor(cfg, logger, nil)
 
 		// Replace engine with mock
 		mock := &mockEngine{}
@@ -120,7 +120,7 @@ func TestSupervisor(t *testing.T) {
 
 	t.Run("auto restart on failure", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}
-		supervisor := NewSupervisor(cfg, logger)
+		supervisor := NewSupervisor(cfg, logger, nil)
 		supervisor.healthCheckInterval = 100 * time.Millisecond
 
 		// Replace engine with mock
@@ -155,7 +155,7 @@ func TestSupervisor(t *testing.T) {
 
 	t.Run("manual restart", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}
-		supervisor := NewSupervisor(cfg, logger)
+		supervisor := NewSupervisor(cfg, logger, nil)
 
 		// Replace engine with mock
 		mock := &mockEngine{}
@@ -196,7 +196,7 @@ func TestSupervisor(t *testing.T) {
 
 	t.Run("retry on start failure", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}
-		supervisor := NewSupervisor(cfg, logger)
+		supervisor := NewSupervisor(cfg, logger, nil)
 
 		// Replace engine with mock that fails initially
 		mock := &mockEngine{}
@@ -235,7 +235,7 @@ func TestSupervisor(t *testing.T) {
 
 	t.Run("health check with ping failure", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}
-		supervisor := NewSupervisor(cfg, logger)
+		supervisor := NewSupervisor(cfg, logger, nil)
 		supervisor.healthCheckInterval = 100 * time.Millisecond
 
 		// Replace engine with mock

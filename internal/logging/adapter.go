@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // LoggerAdapter adapts the old Logger to work with the new ContextLogger interface.
@@ -78,34 +79,72 @@ func (l *LoggerAdapter) WithFields(fields map[string]interface{}) ContextLogger 
 
 // Override logging methods to include field information.
 func (l *LoggerAdapter) Debug(format string, args ...interface{}) {
-	l.Logger.Debug(l.formatWithFields(format), args...)
+	msg, fields := l.parseArgs(format, args...)
+	l.Logger.Debug(l.formatWithFields(msg, fields))
 }
 
 func (l *LoggerAdapter) Info(format string, args ...interface{}) {
-	l.Logger.Info(l.formatWithFields(format), args...)
+	msg, fields := l.parseArgs(format, args...)
+	l.Logger.Info(l.formatWithFields(msg, fields))
 }
 
 func (l *LoggerAdapter) Warn(format string, args ...interface{}) {
-	l.Logger.Warn(l.formatWithFields(format), args...)
+	msg, fields := l.parseArgs(format, args...)
+	l.Logger.Warn(l.formatWithFields(msg, fields))
 }
 
 func (l *LoggerAdapter) Error(format string, args ...interface{}) {
-	l.Logger.Error(l.formatWithFields(format), args...)
+	msg, fields := l.parseArgs(format, args...)
+	l.Logger.Error(l.formatWithFields(msg, fields))
 }
 
 func (l *LoggerAdapter) Fatal(format string, args ...interface{}) {
-	l.Logger.Fatal(l.formatWithFields(format), args...)
+	msg, fields := l.parseArgs(format, args...)
+	l.Logger.Fatal(l.formatWithFields(msg, fields))
+}
+
+// parseArgs separates the message from key-value pairs.
+func (l *LoggerAdapter) parseArgs(format string, args ...interface{}) (message string, fields map[string]interface{}) {
+	fields = make(map[string]interface{})
+
+	// If args length is odd, first arg might be for format string
+	if len(args)%2 == 1 {
+		// Check if format string contains %
+		if strings.Contains(format, "%") {
+			return fmt.Sprintf(format, args...), fields
+		}
+		// Otherwise treat all as key-value pairs starting from second arg
+		return format, fields
+	}
+
+	// Parse key-value pairs
+	for i := 0; i < len(args)-1; i += 2 {
+		if key, ok := args[i].(string); ok {
+			fields[key] = args[i+1]
+		}
+	}
+
+	return format, fields
 }
 
 // formatWithFields adds field information to the message.
-func (l *LoggerAdapter) formatWithFields(format string) string {
-	if len(l.fields) == 0 {
+func (l *LoggerAdapter) formatWithFields(format string, extraFields map[string]interface{}) string {
+	// Combine adapter fields with extra fields
+	allFields := make(map[string]interface{})
+	for k, v := range l.fields {
+		allFields[k] = v
+	}
+	for k, v := range extraFields {
+		allFields[k] = v
+	}
+
+	if len(allFields) == 0 {
 		return format
 	}
 
 	// Add fields to the message
 	fieldStr := ""
-	for k, v := range l.fields {
+	for k, v := range allFields {
 		if fieldStr != "" {
 			fieldStr += " "
 		}

@@ -95,7 +95,7 @@ func (env *TestEnvironment) CreateTestEngine(t *testing.T) *katago.Engine {
 		MaxTime:    10.0, // Longer timeout needed for KataGo initialization on first query
 	}
 
-	engine := katago.NewEngine(cfg, env.Logger)
+	engine := katago.NewEngine(cfg, env.Logger, nil)
 
 	// Start engine
 	ctx := context.Background()
@@ -233,7 +233,7 @@ func TestMCPServerE2E(t *testing.T) {
 	}
 
 	// Create engine
-	engine := katago.NewEngine(&cfg.KataGo, env.Logger)
+	engine := katago.NewEngine(&cfg.KataGo, env.Logger, nil)
 
 	// Create MCP server
 	mcpServer := server.NewMCPServer(
