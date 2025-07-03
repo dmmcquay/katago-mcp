@@ -117,7 +117,7 @@ func TestCacheEviction(t *testing.T) {
 	// Create cache with very small limits
 	cacheConfig := &config.CacheConfig{
 		Enabled:      true,
-		MaxItems:     3, // Only 3 items
+		MaxItems:     3,         // Only 3 items
 		MaxSizeBytes: 50 * 1024, // 50KB
 		TTLSeconds:   60,
 	}
