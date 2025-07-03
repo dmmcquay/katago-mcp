@@ -32,7 +32,7 @@ func TestAnalysisCache(t *testing.T) {
 		ModelPath:  env.ModelPath,
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
-		MaxVisits:  50, // Lower visits for faster tests
+		MaxVisits:  50,   // Lower visits for faster tests
 		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
@@ -128,7 +128,7 @@ func TestCacheEviction(t *testing.T) {
 		ModelPath:  env.ModelPath,
 		ConfigPath: env.ConfigPath,
 		NumThreads: 2,
-		MaxVisits:  20, // Very low for speed
+		MaxVisits:  20,   // Very low for speed
 		MaxTime:    10.0, // Increased timeout for Docker environment
 	}
 
