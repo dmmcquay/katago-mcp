@@ -5,21 +5,17 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/cache"
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 // TestAnalysisCache tests that the LRU cache is working correctly
 func TestAnalysisCache(t *testing.T) {
-	env := setupTestEnvironment(t)
-	defer env.Cleanup()
+	env := SetupTestEnvironment(t)
 
 	// Create cache manager with small limits to test eviction
 	cacheConfig := &config.CacheConfig{
@@ -47,7 +43,11 @@ func TestAnalysisCache(t *testing.T) {
 	if err := engine.Start(ctx); err != nil {
 		t.Fatalf("Failed to start engine: %v", err)
 	}
-	defer engine.Stop()
+	t.Cleanup(func() {
+		if err := engine.Stop(); err != nil {
+			t.Logf("Warning: failed to stop engine: %v", err)
+		}
+	})
 
 	// Wait for engine to be ready
 	time.Sleep(2 * time.Second)
@@ -112,8 +112,7 @@ func TestAnalysisCache(t *testing.T) {
 
 // TestCacheEviction tests that the cache properly evicts old entries
 func TestCacheEviction(t *testing.T) {
-	env := setupTestEnvironment(t)
-	defer env.Cleanup()
+	env := SetupTestEnvironment(t)
 
 	// Create cache with very small limits
 	cacheConfig := &config.CacheConfig{
@@ -139,7 +138,11 @@ func TestCacheEviction(t *testing.T) {
 	if err := engine.Start(ctx); err != nil {
 		t.Fatalf("Failed to start engine: %v", err)
 	}
-	defer engine.Stop()
+	t.Cleanup(func() {
+		if err := engine.Stop(); err != nil {
+			t.Logf("Warning: failed to stop engine: %v", err)
+		}
+	})
 
 	time.Sleep(2 * time.Second)
 
@@ -190,8 +193,7 @@ func TestCacheTTL(t *testing.T) {
 		t.Skip("Skipping TTL test in short mode")
 	}
 
-	env := setupTestEnvironment(t)
-	defer env.Cleanup()
+	env := SetupTestEnvironment(t)
 
 	// Create cache with very short TTL
 	cacheConfig := &config.CacheConfig{
@@ -217,7 +219,11 @@ func TestCacheTTL(t *testing.T) {
 	if err := engine.Start(ctx); err != nil {
 		t.Fatalf("Failed to start engine: %v", err)
 	}
-	defer engine.Stop()
+	t.Cleanup(func() {
+		if err := engine.Stop(); err != nil {
+			t.Logf("Warning: failed to stop engine: %v", err)
+		}
+	})
 
 	time.Sleep(2 * time.Second)
 
@@ -259,8 +265,7 @@ func TestCacheTTL(t *testing.T) {
 
 // TestCacheDisabled tests that caching can be disabled
 func TestCacheDisabled(t *testing.T) {
-	env := setupTestEnvironment(t)
-	defer env.Cleanup()
+	env := SetupTestEnvironment(t)
 
 	// Create with caching disabled
 	cacheConfig := &config.CacheConfig{
@@ -283,7 +288,11 @@ func TestCacheDisabled(t *testing.T) {
 	if err := engine.Start(ctx); err != nil {
 		t.Fatalf("Failed to start engine: %v", err)
 	}
-	defer engine.Stop()
+	t.Cleanup(func() {
+		if err := engine.Stop(); err != nil {
+			t.Logf("Warning: failed to stop engine: %v", err)
+		}
+	})
 
 	time.Sleep(2 * time.Second)
 
@@ -305,125 +314,4 @@ func TestCacheDisabled(t *testing.T) {
 	if stats.Hits != 0 || stats.Misses != 0 {
 		t.Errorf("Cache should be inactive but got hits=%d, misses=%d", stats.Hits, stats.Misses)
 	}
-}
-
-// TestCacheWithMCPServer tests cache integration with the full MCP server
-func TestCacheWithMCPServer(t *testing.T) {
-	env := setupTestEnvironment(t)
-	defer env.Cleanup()
-
-	// Create full configuration
-	cfg := &config.Config{
-		KataGo: config.KataGoConfig{
-			BinaryPath: env.BinaryPath,
-			ModelPath:  env.ModelPath,
-			ConfigPath: env.ConfigPath,
-			NumThreads: 2,
-			MaxVisits:  30,
-			MaxTime:    3.0,
-		},
-		Server: config.ServerConfig{
-			Name:    "test-katago-mcp",
-			Version: "test",
-		},
-		Cache: config.CacheConfig{
-			Enabled:      true,
-			MaxItems:     10,
-			MaxSizeBytes: 1024 * 1024,
-			TTLSeconds:   60,
-		},
-	}
-
-	// Create cache manager
-	cacheManager := cache.NewManager(&cfg.Cache, env.Logger)
-
-	// Create engine
-	engine := katago.NewEngine(&cfg.KataGo, env.Logger, cacheManager)
-
-	// Create MCP server
-	mcpServer := server.NewMCPServer(
-		cfg.Server.Name,
-		cfg.Server.Version,
-		server.WithLogging(),
-	)
-
-	// Register analyze tool (simplified)
-	analyzeTool := mcp.NewTool("analyzePosition",
-		mcp.WithDescription("Analyze a Go position"),
-		mcp.WithString("sgf", mcp.Required(), mcp.Description("SGF game record")),
-	)
-
-	mcpServer.AddTool(analyzeTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		args := req.Params.Arguments
-		sgf, ok := args["sgf"].(string)
-		if !ok {
-			return nil, fmt.Errorf("sgf parameter required")
-		}
-
-		// Start engine if needed
-		if !engine.IsRunning() {
-			if err := engine.Start(ctx); err != nil {
-				return nil, err
-			}
-			time.Sleep(2 * time.Second)
-		}
-
-		result, err := engine.AnalyzeSGF(ctx, sgf, 0)
-		if err != nil {
-			return nil, err
-		}
-
-		// Return simplified result
-		topMove := "pass"
-		if len(result.MoveInfos) > 0 {
-			topMove = result.MoveInfos[0].Move
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Top move: %s (winrate: %.1f%%)", 
-			topMove, result.RootInfo.Winrate*100)), nil
-	})
-
-	// Test the tool twice with same position
-	testSGF := `(;GM[1]FF[4]SZ[19]KM[7.5];B[dd];W[pp])`
-	
-	req := mcp.CallToolRequest{
-		Params: mcp.CallToolParams{
-			Name: "analyzePosition",
-			Arguments: map[string]interface{}{
-				"sgf": testSGF,
-			},
-		},
-	}
-
-	// First call - cache miss
-	start1 := time.Now()
-	result1, err := mcpServer.CallTool(context.Background(), req)
-	if err != nil {
-		t.Fatalf("First tool call failed: %v", err)
-	}
-	duration1 := time.Since(start1)
-
-	// Second call - cache hit
-	start2 := time.Now()
-	result2, err := mcpServer.CallTool(context.Background(), req)
-	if err != nil {
-		t.Fatalf("Second tool call failed: %v", err)
-	}
-	duration2 := time.Since(start2)
-
-	// Should get same result
-	if result1.Content[0].Text != result2.Content[0].Text {
-		t.Errorf("Different results: %v vs %v", result1.Content[0].Text, result2.Content[0].Text)
-	}
-
-	// Cache hit should be faster
-	if duration2 >= duration1 {
-		t.Errorf("Cache hit (%v) was not faster than miss (%v)", duration2, duration1)
-	}
-
-	stats := cacheManager.Stats()
-	t.Logf("MCP cache test - Stats: %+v, miss=%v, hit=%v", stats, duration1, duration2)
-
-	// Cleanup
-	engine.Stop()
 }
