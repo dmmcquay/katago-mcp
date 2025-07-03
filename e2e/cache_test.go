@@ -265,7 +265,7 @@ func TestCacheTTL(t *testing.T) {
 
 	stats2 := cacheManager.Stats()
 	t.Logf("TTL test - Initial stats: %+v, After TTL: %+v, Duration: %v", stats1, stats2, duration)
-	
+
 	// The item count should remain the same (old entry replaced by new one)
 	if stats2.Items != stats1.Items {
 		t.Logf("Note: Item count changed from %d to %d after TTL", stats1.Items, stats2.Items)
