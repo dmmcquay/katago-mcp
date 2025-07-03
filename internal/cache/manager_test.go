@@ -319,4 +319,3 @@ func TestManager_Integration(t *testing.T) {
 	_, ok = manager.Get(differentKey)
 	assert.False(t, ok)
 }
-
