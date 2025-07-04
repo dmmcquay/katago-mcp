@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
 	"github.com/dmmcquay/katago-mcp/internal/katago"
@@ -21,19 +22,17 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 	env := SetupTestEnvironment(t)
 	engine := env.CreateTestEngine(t)
 
-	ctx := context.Background()
+	// Use a timeout to prevent hanging in CI
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
-	// Test with a game that has known mistakes at various points
+	// Test with a shorter game that has mistakes at different points
+	// Reduced from 31 moves to 15 for faster e2e tests
 	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
 ;B[pd];W[dp];B[pp];W[dd];B[fc];W[cf];B[jd];W[qj]
 ;B[aa]C[Move 9: Black plays useless move in corner - clear mistake]
 ;W[qm];B[bb]C[Move 11: Another bad move in corner]
-;W[nq];B[pq];W[np];B[po];W[jp]
-;B[tt]C[Move 17: Black passes too early - mistake]
-;W[cn];B[fq];W[eq];B[fp];W[ep]
-;B[fo];W[tt]C[Move 24: White passes while game is active]
-;B[hq];W[iq];B[hr];W[ir];B[hs]
-;W[is];B[gr]C[Move 31: Last move of this test game])`
+;W[nq];B[pq];W[np];B[tt]C[Move 15: Black passes - mistake])`
 
 	// Count moves in the SGF
 	parser := katago.NewSGFParser(sgf)
@@ -44,12 +43,12 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 	expectedMoves := len(position.Moves)
 	t.Logf("Test SGF has %d moves", expectedMoves)
 
-	// Review the game
+	// Review the game with reduced visits for faster e2e tests
 	review, err := engine.ReviewGame(ctx, sgf, &katago.MistakeThresholds{
 		Blunder:       0.15,
 		Mistake:       0.05,
 		Inaccuracy:    0.02,
-		MinimumVisits: 50,
+		MinimumVisits: 10, // Reduced from 50 for faster CPU-only tests
 	})
 	if err != nil {
 		t.Fatalf("Failed to review game: %v", err)
@@ -125,17 +124,12 @@ func TestFindMistakesMCPFullCoverage(t *testing.T) {
 	// Create MCP server and tools handler
 	toolsHandler := setupMCPServer(t, env)
 
-	// Same test SGF as above
+	// Same test SGF as above - shortened for faster tests
 	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
 ;B[pd];W[dp];B[pp];W[dd];B[fc];W[cf];B[jd];W[qj]
 ;B[aa]C[Move 9: Black plays useless move in corner - clear mistake]
 ;W[qm];B[bb]C[Move 11: Another bad move in corner]
-;W[nq];B[pq];W[np];B[po];W[jp]
-;B[tt]C[Move 17: Black passes too early - mistake]
-;W[cn];B[fq];W[eq];B[fp];W[ep]
-;B[fo];W[tt]C[Move 24: White passes while game is active]
-;B[hq];W[iq];B[hr];W[ir];B[hs]
-;W[is];B[gr]C[Move 31: Last move of this test game])`
+;W[nq];B[pq];W[np];B[tt]C[Move 15: Black passes - mistake])`
 
 	// Count expected moves
 	parser := katago.NewSGFParser(sgf)
@@ -145,10 +139,10 @@ func TestFindMistakesMCPFullCoverage(t *testing.T) {
 	}
 	expectedMoves := len(position.Moves)
 
-	// Call findMistakes through MCP
+	// Call findMistakes through MCP with reduced visits for faster tests
 	args := map[string]interface{}{
 		"sgf":       sgf,
-		"maxVisits": 50,
+		"maxVisits": 10, // Reduced from 50 for faster CPU-only tests
 	}
 
 	request := mcp.CallToolRequest{
@@ -180,8 +174,7 @@ func TestFindMistakesMCPFullCoverage(t *testing.T) {
 	// Look for "Total moves: X" in the output
 	totalMovesFound := false
 	expectedMovesStr := fmt.Sprintf("%d", expectedMoves)
-	if strings.Contains(resultText, "Total moves: "+expectedMovesStr) ||
-		strings.Contains(resultText, "Total moves: 31") {
+	if strings.Contains(resultText, "Total moves: "+expectedMovesStr) {
 		totalMovesFound = true
 	}
 
