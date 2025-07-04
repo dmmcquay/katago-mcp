@@ -86,7 +86,7 @@ func (e *Engine) ReviewGame(ctx context.Context, sgf string, thresholds *Mistake
 		if i%50 == 0 {
 			e.logger.Info("Analyzing game progress", "moveNumber", i, "totalMoves", len(fullGame.Moves))
 		}
-		
+
 		// Create position before the move at index i-1
 		position := &Position{
 			Rules:         fullGame.Rules,

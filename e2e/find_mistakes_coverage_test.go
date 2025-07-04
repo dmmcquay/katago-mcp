@@ -71,9 +71,9 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 	}
 
 	// Check that we found mistakes from different parts of the game
-	foundEarlyMistake := false  // Moves 1-10
-	foundMidMistake := false    // Moves 11-20
-	foundLateMistake := false   // Moves 21+
+	foundEarlyMistake := false // Moves 1-10
+	foundMidMistake := false   // Moves 11-20
+	foundLateMistake := false  // Moves 21+
 
 	for moveNum := range mistakePositions {
 		if moveNum <= 10 {
@@ -90,7 +90,7 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 		t.Error("No mistakes found in moves 1-10, but we placed A19/B18 corner mistakes there")
 	}
 	// Log which sections had mistakes
-	t.Logf("Mistakes found - Early (1-10): %v, Mid (11-20): %v, Late (21+): %v", 
+	t.Logf("Mistakes found - Early (1-10): %v, Mid (11-20): %v, Late (21+): %v",
 		foundEarlyMistake, foundMidMistake, foundLateMistake)
 
 	// Additional checks
@@ -230,7 +230,7 @@ func setupMCPServer(t *testing.T, env *TestEnvironment) *mcpInternal.ToolsHandle
 	}
 
 	engine := katago.NewEngine(&cfg.KataGo, env.Logger, nil)
-	
+
 	// Start engine
 	ctx := context.Background()
 	if err := engine.Start(ctx); err != nil {
