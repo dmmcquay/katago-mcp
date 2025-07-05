@@ -13,6 +13,9 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+// testContextKey is a type for context keys in tests
+type testContextKey string
+
 func TestMiddleware(t *testing.T) {
 	cfg := &logging.Config{
 		Level:   "debug",
@@ -133,7 +136,7 @@ func TestMiddleware(t *testing.T) {
 		wrapped := middleware.WrapTool("testTool", handler)
 
 		// With client ID in context
-		ctx := context.WithValue(context.Background(), "clientID", "test-client")
+		ctx := context.WithValue(context.Background(), testContextKey("clientID"), "test-client")
 		req := mcp.CallToolRequest{
 			Params: mcp.CallToolParams{},
 		}

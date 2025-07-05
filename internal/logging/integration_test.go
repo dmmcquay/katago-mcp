@@ -33,7 +33,9 @@ func TestStructuredLoggerIntegration(t *testing.T) {
 	// Close writer and read output
 	w.Close()
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	// Parse JSON output
@@ -169,7 +171,9 @@ func TestJSONOutputFormat(t *testing.T) {
 	// Close writer and read output
 	w.Close()
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	// Should have 4 JSON lines

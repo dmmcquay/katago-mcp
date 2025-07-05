@@ -128,7 +128,7 @@ func TestLimiter(t *testing.T) {
 
 		// Client 1 uses more tokens
 		for i := 0; i < 9; i++ {
-			limiter.Allow("client1", "action")
+			_, _ = limiter.Allow("client1", "action")
 		}
 
 		// Now global limit should be hit
@@ -148,7 +148,7 @@ func TestLimiter(t *testing.T) {
 
 		// Use up burst
 		for i := 0; i < 5; i++ {
-			limiter.Allow("client1", "action")
+			_, _ = limiter.Allow("client1", "action")
 		}
 
 		// Check wait time
@@ -169,7 +169,7 @@ func TestLimiter(t *testing.T) {
 
 		// Use all tokens
 		for i := 0; i < 5; i++ {
-			limiter.Allow("client1", "action")
+			_, _ = limiter.Allow("client1", "action")
 		}
 
 		// Should be denied

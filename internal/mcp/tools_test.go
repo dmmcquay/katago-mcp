@@ -72,7 +72,7 @@ func TestEngineStatusTool(t *testing.T) {
 	}
 
 	if result == nil {
-		t.Error("Expected result")
+		t.Fatal("Expected result")
 	}
 
 	// Check that result contains status information
