@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/config"
@@ -15,7 +15,7 @@ import (
 func main() {
 	// Read SGF file
 	sgfFile := "test_game_76776999.sgf"
-	sgfContent, err := ioutil.ReadFile(sgfFile)
+	sgfContent, err := os.ReadFile(sgfFile)
 	if err != nil {
 		log.Fatalf("Failed to read SGF file: %v", err)
 	}
@@ -48,10 +48,14 @@ func main() {
 	// Start engine
 	ctx := context.Background()
 	fmt.Println("\nStarting KataGo engine...")
-	if err := engine.Start(ctx); err != nil {
-		log.Fatalf("Failed to start engine: %v", err)
+	if startErr := engine.Start(ctx); startErr != nil {
+		log.Fatalf("Failed to start engine: %v", startErr)
 	}
-	defer engine.Stop()
+	defer func() {
+		if err := engine.Stop(); err != nil {
+			log.Printf("Failed to stop engine: %v", err)
+		}
+	}()
 
 	fmt.Println("Engine started successfully!")
 
@@ -68,7 +72,9 @@ func main() {
 
 	review, err := engine.ReviewGame(ctx, string(sgfContent), thresholds)
 	if err != nil {
-		log.Fatalf("Failed to review game: %v", err)
+		// Don't use log.Fatalf here because it would skip the defer
+		log.Printf("Failed to review game: %v", err)
+		return
 	}
 
 	elapsed := time.Since(startTime)
@@ -78,11 +84,12 @@ func main() {
 	fmt.Printf("\n=== ANALYSIS RESULTS ===\n")
 	fmt.Printf("Total moves analyzed: %d\n", review.Summary.TotalMoves)
 
-	if review.Summary.TotalMoves == 271 {
+	switch review.Summary.TotalMoves {
+	case 271:
 		fmt.Println("✅ SUCCESS: Correctly analyzed all 271 moves!")
-	} else if review.Summary.TotalMoves == 1 {
+	case 1:
 		fmt.Println("❌ FAILURE: Bug still present - only analyzed 1 move")
-	} else {
+	default:
 		fmt.Printf("⚠️  Analyzed %d moves (expected 271)\n", review.Summary.TotalMoves)
 	}
 
@@ -94,7 +101,8 @@ func main() {
 
 	// Show first few mistakes
 	fmt.Printf("\nFirst few mistakes:\n")
-	for i, mistake := range review.Mistakes {
+	for i := range review.Mistakes {
+		mistake := &review.Mistakes[i]
 		if i >= 5 {
 			fmt.Printf("... and %d more mistakes\n", len(review.Mistakes)-5)
 			break
