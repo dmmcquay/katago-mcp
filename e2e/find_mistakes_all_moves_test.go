@@ -73,7 +73,7 @@ func TestFindMistakesAnalyzesAllMoves(t *testing.T) {
 
 	// The key test is that all moves were analyzed (checked above with TotalMoves)
 	// Finding mistakes is secondary - with minimal analysis (1 visit), we may not find any
-	
+
 	if len(review.Mistakes) > 0 {
 		// If we found mistakes, verify they're not all at move 1 (the original bug)
 		allMovesAreOne := true
@@ -86,7 +86,7 @@ func TestFindMistakesAnalyzesAllMoves(t *testing.T) {
 		if allMovesAreOne {
 			t.Error("CRITICAL: All mistakes are at move 1 - the exact bug we're testing for!")
 		}
-		
+
 		t.Logf("Found %d mistakes across different moves", len(review.Mistakes))
 	} else {
 		t.Log("No mistakes found - this is OK with minimal analysis (1 visit)")
@@ -170,7 +170,7 @@ func TestFindMistakesMCPAnalyzesAllMoves(t *testing.T) {
 
 	// The key test is that all moves were analyzed (checked above)
 	// Whether mistakes were found is secondary with minimal analysis
-	
+
 	// If mistakes were found, verify they're not all from move 1
 	if strings.Contains(resultText, "Move 1:") {
 		hasNonMove1Mistake := false
@@ -181,7 +181,7 @@ func TestFindMistakesMCPAnalyzesAllMoves(t *testing.T) {
 				break
 			}
 		}
-		
+
 		if !hasNonMove1Mistake {
 			t.Error("All mistakes appear to be from move 1 only - the bug we're testing for!")
 		}
