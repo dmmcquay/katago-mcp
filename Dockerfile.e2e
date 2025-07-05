@@ -39,4 +39,5 @@ RUN go mod download
 COPY . .
 
 # Default command runs e2e tests
-CMD ["go", "test", "-v", "-tags=e2e", "-count=1", "./e2e", "-timeout", "300s"]
+# Increased timeout to 15 minutes for CPU-only analysis
+CMD ["go", "test", "-v", "-tags=e2e", "-count=1", "./e2e", "-timeout", "900s"]

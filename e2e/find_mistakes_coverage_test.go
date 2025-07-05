@@ -24,7 +24,8 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 	engine := env.CreateTestEngine(t)
 
 	// Use a timeout to prevent hanging in CI
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// Increased to 10 minutes for CPU-only Docker environment
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	// Test with a minimal 9x9 game to ensure fast execution in CI
