@@ -1,6 +1,9 @@
 //go:build e2e
 // +build e2e
 
+// This file contains regression tests for the findMistakes bug where only the first move
+// was being analyzed. The tests verify that ALL moves in a game are analyzed, not just move 1.
+
 package e2e
 
 import (
@@ -16,10 +19,10 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// TestFindMistakesFullCoverage tests that findMistakes analyzes ALL moves in a game,
-// not just the first move. This test would have caught the bug where only move 1 was analyzed.
-func TestFindMistakesFullCoverage(t *testing.T) {
-	t.Log("Starting TestFindMistakesFullCoverage")
+// TestFindMistakesAnalyzesAllMoves verifies that findMistakes analyzes ALL moves in a game,
+// not just the first move. This is a regression test for the bug where only move 1 was analyzed.
+func TestFindMistakesAnalyzesAllMoves(t *testing.T) {
+	t.Log("Starting TestFindMistakesAnalyzesAllMoves - verifying all moves are analyzed")
 	env := SetupTestEnvironment(t)
 	engine := env.CreateTestEngine(t)
 
@@ -97,9 +100,9 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 		review.Summary.WhiteMistakes, review.Summary.WhiteAccuracy)
 }
 
-// TestFindMistakesMCPFullCoverage tests the same thing through the MCP interface
-func TestFindMistakesMCPFullCoverage(t *testing.T) {
-	t.Log("Starting TestFindMistakesMCPFullCoverage")
+// TestFindMistakesMCPAnalyzesAllMoves tests the same thing through the MCP interface
+func TestFindMistakesMCPAnalyzesAllMoves(t *testing.T) {
+	t.Log("Starting TestFindMistakesMCPAnalyzesAllMoves - verifying all moves analyzed via MCP")
 	env := SetupTestEnvironment(t)
 
 	// Create MCP server and tools handler
