@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -20,10 +19,6 @@ import (
 // TestFindMistakesFullCoverage tests that findMistakes analyzes ALL moves in a game,
 // not just the first move. This test would have caught the bug where only move 1 was analyzed.
 func TestFindMistakesFullCoverage(t *testing.T) {
-	// Skip in CI due to performance issues with CPU-only Docker
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping in CI due to CPU-only performance constraints")
-	}
 	env := SetupTestEnvironment(t)
 	engine := env.CreateTestEngine(t)
 
@@ -31,11 +26,10 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	// Test with a minimal game that still demonstrates the bug fix
-	// Only 5 moves to ensure fast execution in CPU-only Docker environment
-	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
-;B[pd];W[dp];B[aa]C[Move 3: Black plays corner - mistake]
-;W[dd];B[tt]C[Move 5: Black passes early])`
+	// Test with a minimal 9x9 game to ensure fast execution in CI
+	// Just 3 moves is enough to verify all moves are analyzed
+	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[9]KM[6.5]
+;B[ee];W[eg];B[ge])`
 
 	// Count moves in the SGF
 	parser := katago.NewSGFParser(sgf)
@@ -113,19 +107,14 @@ func TestFindMistakesFullCoverage(t *testing.T) {
 
 // TestFindMistakesMCPFullCoverage tests the same thing through the MCP interface
 func TestFindMistakesMCPFullCoverage(t *testing.T) {
-	// Skip in CI due to performance issues with CPU-only Docker
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping in CI due to CPU-only performance constraints")
-	}
 	env := SetupTestEnvironment(t)
 
 	// Create MCP server and tools handler
 	toolsHandler := setupMCPServer(t, env)
 
-	// Same minimal test SGF
-	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[6.5]
-;B[pd];W[dp];B[aa]C[Move 3: Black plays corner - mistake]
-;W[dd];B[tt]C[Move 5: Black passes early])`
+	// Same minimal 9x9 test SGF
+	sgf := `(;GM[1]FF[4]CA[UTF-8]SZ[9]KM[6.5]
+;B[ee];W[eg];B[ge])`
 
 	// Count expected moves
 	parser := katago.NewSGFParser(sgf)
@@ -213,8 +202,8 @@ func setupMCPServer(t *testing.T, env *TestEnvironment) *mcpInternal.ToolsHandle
 			ModelPath:  env.ModelPath,
 			ConfigPath: env.ConfigPath,
 			NumThreads: 1,
-			MaxVisits:  100,
-			MaxTime:    10.0,
+			MaxVisits:  10, // Reduced for faster tests
+			MaxTime:    5.0, // Reduced timeout
 		},
 	}
 
