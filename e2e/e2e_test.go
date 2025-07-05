@@ -65,6 +65,10 @@ func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 	}
 
 	if modelPath == "" || configPath == "" {
+		t.Logf("Model path: %q", modelPath)
+		t.Logf("Config path: %q", configPath)
+		t.Logf("KATAGO_TEST_MODEL env: %q", os.Getenv("KATAGO_TEST_MODEL"))
+		t.Logf("KATAGO_TEST_CONFIG env: %q", os.Getenv("KATAGO_TEST_CONFIG"))
 		t.Skip("KATAGO_TEST_MODEL and KATAGO_TEST_CONFIG must be set, or KaTrain must be installed")
 	}
 
