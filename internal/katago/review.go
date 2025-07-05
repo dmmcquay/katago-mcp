@@ -3,6 +3,7 @@ package katago
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // MistakeThresholds defines thresholds for categorizing mistakes.
@@ -77,22 +78,20 @@ func (e *Engine) ReviewGame(ctx context.Context, sgf string, thresholds *Mistake
 	blackMoves, whiteMoves := 0, 0
 	blackGoodMoves, whiteGoodMoves := 0, 0
 
-	// Analyze each position
-	for i := 0; i < len(fullGame.Moves); i++ {
-		// Create position up to this move
+	// Analyze each position after each move
+	for i := 1; i <= len(fullGame.Moves); i++ {
+		// Create position before the move at index i-1
 		position := &Position{
 			Rules:         fullGame.Rules,
 			BoardXSize:    fullGame.BoardXSize,
 			BoardYSize:    fullGame.BoardYSize,
-			Moves:         fullGame.Moves[:i],
+			Moves:         fullGame.Moves[:i-1], // Position before move i
 			InitialStones: fullGame.InitialStones,
 		}
 
-		// Determine who is to play
-		color := "B"
-		if i%2 == 1 {
-			color = "W"
-		}
+		// The move we're evaluating
+		currentMove := fullGame.Moves[i-1]
+		color := strings.ToUpper(currentMove.Color)
 
 		// Track move counts
 		if color == "B" {
@@ -124,10 +123,7 @@ func (e *Engine) ReviewGame(ctx context.Context, sgf string, thresholds *Mistake
 		}
 
 		// Get the actual played move
-		var playedMove string
-		if i < len(fullGame.Moves) {
-			playedMove = fullGame.Moves[i].Location
-		}
+		playedMove := currentMove.Location
 
 		// Find the played move in analysis
 		var playedInfo *MoveInfo
@@ -166,7 +162,7 @@ func (e *Engine) ReviewGame(ctx context.Context, sgf string, thresholds *Mistake
 		switch {
 		case winrateDrop >= thresholds.Blunder:
 			mistake := Mistake{
-				MoveNumber:  i + 1,
+				MoveNumber:  i,
 				Color:       color,
 				PlayedMove:  playedMove,
 				BestMove:    bestMove.Move,
@@ -189,7 +185,7 @@ func (e *Engine) ReviewGame(ctx context.Context, sgf string, thresholds *Mistake
 			}
 		case winrateDrop >= thresholds.Mistake:
 			mistake := Mistake{
-				MoveNumber:  i + 1,
+				MoveNumber:  i,
 				Color:       color,
 				PlayedMove:  playedMove,
 				BestMove:    bestMove.Move,
