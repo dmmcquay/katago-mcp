@@ -1,0 +1,16 @@
+{
+  "server": {
+    "name": "katago-mcp-local",
+    "version": "0.1.0"
+  },
+  "katago": {
+    "binaryPath": "/opt/homebrew/bin/katago",
+    "modelPath": "/Users/dmcquay/venvs/system-venv/lib/python3.12/site-packages/katrain/models/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz",
+    "configPath": "/Users/dmcquay/venvs/system-venv/lib/python3.12/site-packages/katrain/KataGo/analysis_config.cfg",
+    "numThreads": 4,
+    "maxVisits": 1000
+  },
+  "logging": {
+    "level": "debug"
+  }
+}

@@ -202,7 +202,7 @@ func setupMCPServer(t *testing.T, env *TestEnvironment) *mcpInternal.ToolsHandle
 			ModelPath:  env.ModelPath,
 			ConfigPath: env.ConfigPath,
 			NumThreads: 1,
-			MaxVisits:  10, // Reduced for faster tests
+			MaxVisits:  10,  // Reduced for faster tests
 			MaxTime:    5.0, // Reduced timeout
 		},
 	}
