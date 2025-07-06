@@ -100,6 +100,13 @@ jobs:
         go-version: '1.21.x'
         cache: true
     
+    - name: Install KataGo dependencies
+      run: |
+        echo "📦 Installing KataGo dependencies..."
+        sudo apt-get update
+        # Install libzip5 which provides libzip.so.5
+        sudo apt-get install -y libzip5 libboost-all-dev libgoogle-perftools-dev
+        
     - name: Install KataGo
       run: |
         echo "📦 Installing KataGo..."
