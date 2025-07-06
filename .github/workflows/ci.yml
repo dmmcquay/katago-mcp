@@ -85,12 +85,11 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: test
-    # TODO: Re-enable container once base image is built
-    # container:
-    #   image: ghcr.io/dmmcquay/katago-base:v1.14.1
-    #   credentials:
-    #     username: ${{ github.actor }}
-    #     password: ${{ secrets.GITHUB_TOKEN }}
+    container:
+      image: ghcr.io/dmmcquay/katago-base:v1.14.1
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v4
     
@@ -100,29 +99,19 @@ jobs:
         go-version: '1.21.x'
         cache: true
     
-    - name: Install KataGo dependencies
+    - name: Verify KataGo is available
       run: |
-        echo "📦 Installing KataGo dependencies..."
-        sudo apt-get update
-        # Install libzip5 which provides libzip.so.5
-        sudo apt-get install -y libzip5 libboost-all-dev libgoogle-perftools-dev
-        
-    - name: Install KataGo
-      run: |
-        echo "📦 Installing KataGo..."
-        # Download KataGo v1.14.1 for Linux
-        wget https://github.com/lightvector/KataGo/releases/download/v1.14.1/katago-v1.14.1-eigen-linux-x64.zip
-        unzip katago-v1.14.1-eigen-linux-x64.zip
-        chmod +x katago
-        sudo mv katago /usr/local/bin/
-        katago version || echo "KataGo installation failed"
+        echo "🔍 Checking KataGo installation..."
+        which katago
+        katago version || true
     
     - name: Set up KataGo test environment
       run: |
         echo "📥 Setting up KataGo model and config..."
         mkdir -p ~/.katago
         
-        # Curl is already available on Ubuntu runners
+        # Install curl and build tools for CGO
+        apt-get update && apt-get install -y curl build-essential
         
         # Download a small test model
         curl -L -o ~/.katago/test-model.bin.gz \
