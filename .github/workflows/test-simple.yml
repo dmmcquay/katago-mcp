@@ -1,0 +1,13 @@
+name: Test Simple
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/findmistakes-simple]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo test
+        run: echo "Actions are working!"
