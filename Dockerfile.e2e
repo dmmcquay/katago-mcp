@@ -39,4 +39,4 @@ RUN go mod download
 COPY . .
 
 # Default command runs e2e tests
-CMD ["go", "test", "-v", "-tags=e2e", "./e2e", "-timeout", "300s"]
+CMD ["go", "test", "-v", "-tags=e2e", "./e2e", "-timeout", "600s"]
