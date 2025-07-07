@@ -306,8 +306,8 @@ func (h *ToolsHandler) HandleAnalyzePosition(ctx context.Context, request mcp.Ca
 	if verbose || (!req.IncludePolicy && !req.IncludeOwnership) {
 		// Return formatted text for simple cases
 		boardSize := 19 // Default
-		if position != nil {
-			boardSize = position.BoardXSize
+		if req.Position != nil {
+			boardSize = req.Position.BoardXSize
 		}
 		formatted := katago.FormatAnalysisResult(result, verbose, boardSize)
 		return mcp.NewToolResultText(formatted), nil

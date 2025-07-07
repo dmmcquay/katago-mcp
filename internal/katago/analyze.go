@@ -301,8 +301,8 @@ func FormatAnalysisResult(result *AnalysisResult, verbose bool, boardSize int) s
 	return sb.String()
 }
 
-// indexToCoordinate converts a policy array index to board coordinate
-func indexToCoordinate(index int, boardSize int) string {
+// indexToCoordinate converts a policy array index to board coordinate.
+func indexToCoordinate(index, boardSize int) string {
 	if index == boardSize*boardSize {
 		return "pass"
 	}
@@ -321,7 +321,7 @@ func indexToCoordinate(index int, boardSize int) string {
 	return string(col) + fmt.Sprintf("%d", row)
 }
 
-// isValidMoveFormat validates a move string for the given board size
+// isValidMoveFormat validates a move string for the given board size.
 func isValidMoveFormat(move string, boardSize int) bool {
 	if move == "pass" {
 		return true
