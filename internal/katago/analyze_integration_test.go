@@ -14,24 +14,29 @@ import (
 )
 
 func TestAnalyzePosition_Integration(t *testing.T) {
-	// Skip if not in integration test mode
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
+	// Skip if KataGo not available
+	detection, err := DetectKataGo()
+	if err != nil {
+		t.Skip("KataGo not installed, skipping integration tests")
 	}
 
-	// Create test engine
-	cfg := &config.KataGoConfig{
-		BinaryPath: "/usr/local/bin/katago", // Adjust as needed
-		ConfigPath: "",
-		ModelPath:  "",
+	// Skip if no model or config found
+	if detection.ModelPath == "" || detection.ConfigPath == "" {
+		t.Skip("KataGo model or config not found, skipping integration tests")
 	}
-	logger := logging.NewTestLogger(t)
+
+	cfg := &config.KataGoConfig{
+		BinaryPath: detection.BinaryPath,
+		ConfigPath: detection.ConfigPath,
+		ModelPath:  detection.ModelPath,
+	}
+	logger := logging.NewLoggerAdapter(logging.NewLogger("test: ", "debug"))
 	engine := NewEngine(cfg, logger, nil)
 
 	ctx := context.Background()
-	err := engine.Start(ctx)
+	err = engine.Start(ctx)
 	require.NoError(t, err)
-	defer engine.Stop(ctx)
+	defer engine.Stop()
 
 	tests := []struct {
 		name    string
