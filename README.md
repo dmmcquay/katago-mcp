@@ -24,6 +24,8 @@ An MCP (Model Context Protocol) server that provides KataGo analysis capabilitie
 - **evaluateTerritory** - Estimate territory ownership and calculate the final score with visual board representation
 - **explainMove** - Get detailed explanations for why a specific move is good or bad, including strategic analysis
 
+For detailed API documentation including parameters, response formats, and examples, see [API.md](API.md).
+
 ## Installation
 
 ### Prerequisites
