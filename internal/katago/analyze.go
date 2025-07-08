@@ -70,6 +70,10 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 	if len(req.Position.InitialStones) > 0 {
 		stones := make([][]interface{}, len(req.Position.InitialStones))
 		for i, stone := range req.Position.InitialStones {
+			// Validate stone location format
+			if !isValidMoveFormat(stone.Location, req.Position.BoardXSize) {
+				return nil, fmt.Errorf("invalid initial stone location at index %d: %s", i, stone.Location)
+			}
 			stones[i] = []interface{}{stone.Color, stone.Location}
 		}
 		query["initialStones"] = stones
@@ -81,6 +85,10 @@ func (e *Engine) Analyze(ctx context.Context, req *AnalysisRequest) (*AnalysisRe
 		if move.Location == "" {
 			moves[i] = []interface{}{move.Color, "pass"}
 		} else {
+			// Validate move format
+			if !isValidMoveFormat(move.Location, req.Position.BoardXSize) {
+				return nil, fmt.Errorf("invalid move format at index %d: %s", i, move.Location)
+			}
 			moves[i] = []interface{}{move.Color, move.Location}
 		}
 	}
@@ -211,7 +219,7 @@ func (e *Engine) AnalyzeSGF(ctx context.Context, sgfContent string, moveNum int)
 }
 
 // FormatAnalysisResult formats an analysis result as human-readable text.
-func FormatAnalysisResult(result *AnalysisResult, verbose bool) string {
+func FormatAnalysisResult(result *AnalysisResult, verbose bool, boardSize int) string {
 	var sb strings.Builder
 
 	// Root info
@@ -254,11 +262,90 @@ func FormatAnalysisResult(result *AnalysisResult, verbose bool) string {
 	// Policy priors
 	if len(result.Policy) > 0 && verbose {
 		sb.WriteString("\n=== Policy Network ===\n")
-		sb.WriteString("(Raw policy data available as flat array)\n")
+
 		// The policy is a flat array: boardYSize * boardXSize + 1
 		// Last element is pass probability
-		// TODO: Decode policy array to move coordinates
+		// Use the boardSize parameter passed to the function
+
+		// Find top policy moves
+		type policyMove struct {
+			move  string
+			prob  float64
+			index int
+		}
+
+		var topMoves []policyMove
+		for i, prob := range result.Policy {
+			if prob > 0.01 { // Only show moves with >1% probability
+				move := indexToCoordinate(i, boardSize)
+				topMoves = append(topMoves, policyMove{move: move, prob: prob, index: i})
+			}
+		}
+
+		// Sort by probability
+		for i := 0; i < len(topMoves)-1; i++ {
+			for j := i + 1; j < len(topMoves); j++ {
+				if topMoves[j].prob > topMoves[i].prob {
+					topMoves[i], topMoves[j] = topMoves[j], topMoves[i]
+				}
+			}
+		}
+
+		// Show top 10 moves
+		sb.WriteString("Top policy moves:\n")
+		for i := 0; i < len(topMoves) && i < 10; i++ {
+			sb.WriteString(fmt.Sprintf("  %s: %.1f%%\n", topMoves[i].move, topMoves[i].prob*100))
+		}
 	}
 
 	return sb.String()
+}
+
+// isValidMoveFormat validates a move string for the given board size.
+func isValidMoveFormat(move string, boardSize int) bool {
+	if move == "pass" {
+		return true
+	}
+
+	if len(move) < 2 || len(move) > 3 {
+		return false
+	}
+
+	// Check column (A-T, skipping I)
+	col := move[0]
+	if col < 'A' || col > 'T' || col == 'I' {
+		return false
+	}
+
+	// Check row (1-boardSize)
+	rowStr := move[1:]
+	row := 0
+	for _, c := range rowStr {
+		if c < '0' || c > '9' {
+			return false
+		}
+		row = row*10 + int(c-'0')
+	}
+
+	return row >= 1 && row <= boardSize
+}
+
+// indexToCoordinate converts a policy array index to board coordinate.
+func indexToCoordinate(index, boardSize int) string {
+	if index == boardSize*boardSize {
+		return "pass"
+	}
+
+	y := index / boardSize
+	x := index % boardSize
+
+	// Convert to Go coordinates (A-T, 1-19)
+	// Skip 'I' in the column letters
+	col := byte('A' + x)
+	if col >= 'I' {
+		col++
+	}
+	row := boardSize - y
+
+	return string(col) + fmt.Sprintf("%d", row)
 }
