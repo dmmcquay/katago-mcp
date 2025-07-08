@@ -91,14 +91,14 @@ func TestMoveValidation_Integration(t *testing.T) {
 // TestPolicyDecoding_Integration tests policy array decoding
 func TestPolicyDecoding_Integration(t *testing.T) {
 	boardSize := 19
-	
+
 	// Test specific indices
 	tests := []struct {
 		index    int
 		expected string
 	}{
 		{0, "A19"},    // Top-left
-		{18, "T19"},   // Top-right  
+		{18, "T19"},   // Top-right
 		{342, "A1"},   // Bottom-left
 		{360, "T1"},   // Bottom-right
 		{180, "K10"},  // Row 9 (10 from bottom), Col 9 (K)
@@ -118,7 +118,7 @@ func TestPolicyDecoding_Integration(t *testing.T) {
 func TestCoordinateRoundTrip_Integration(t *testing.T) {
 	// Test that SGF to KataGo conversion works correctly
 	parser := &SGFParser{boardSize: 19}
-	
+
 	tests := []struct {
 		sgf      string
 		expected string
