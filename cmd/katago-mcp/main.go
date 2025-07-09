@@ -56,14 +56,22 @@ func main() {
 		Service: cfg.Server.Name,
 		Version: cfg.Server.Version,
 		Prefix:  cfg.Logging.Prefix,
+		File:    &cfg.Logging,
 	}
-	logger := logging.NewLoggerFromConfig(logConfig)
+	logger, logCloser := logging.NewLoggerFromConfig(logConfig)
 	logger.Info("Starting KataGo MCP Server version %s (commit: %s, built: %s)",
 		cfg.Server.Version, GitCommit, BuildTime)
 
 	// Create shutdown manager
 	shutdownManager := shutdown.NewManager(logger)
 	shutdownManager.HandleSignals()
+
+	// Register logger cleanup if we have a file logger
+	if logCloser != nil {
+		shutdownManager.Register("logger", func(ctx context.Context) error {
+			return logCloser.Close()
+		})
+	}
 
 	// Detect KataGo installation
 	logger.Info("Detecting KataGo installation...")
