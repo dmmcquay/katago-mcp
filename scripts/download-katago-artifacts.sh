@@ -114,4 +114,4 @@ fi
 
 echo ""
 echo "🐳 You can now build the Docker image with:"
-echo "   docker build -f Dockerfile.e2e -t katago-mcp-e2e ."
+echo "   docker build -f docker/Dockerfile.e2e -t katago-mcp-e2e ."
