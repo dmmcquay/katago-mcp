@@ -18,7 +18,10 @@ func TestShutdownManager(t *testing.T) {
 		Service: "test",
 		Version: "1.0.0",
 	}
-	logger := logging.NewLoggerFromConfig(logConfig)
+	logger, closer := logging.NewLoggerFromConfig(logConfig)
+	if closer != nil {
+		defer closer.Close()
+	}
 
 	t.Run("shutdown functions all called", func(t *testing.T) {
 		manager := NewManager(logger)

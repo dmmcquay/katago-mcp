@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// FileWriter provides a thread-safe writer with rotation support
+// FileWriter provides a thread-safe writer with rotation support.
 type FileWriter struct {
 	mu            sync.Mutex
 	file          *os.File
@@ -22,7 +22,7 @@ type FileWriter struct {
 	rotateAtStart bool
 }
 
-// NewFileWriter creates a new file writer with rotation support
+// NewFileWriter creates a new file writer with rotation support.
 func NewFileWriter(path string, maxSizeMB, maxBackups, maxAge int, compress bool) (*FileWriter, error) {
 	fw := &FileWriter{
 		path:       path,
@@ -34,7 +34,7 @@ func NewFileWriter(path string, maxSizeMB, maxBackups, maxAge int, compress bool
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
@@ -49,15 +49,15 @@ func NewFileWriter(path string, maxSizeMB, maxBackups, maxAge int, compress bool
 	return fw, nil
 }
 
-// Write implements io.Writer interface
+// Write implements io.Writer interface.
 func (fw *FileWriter) Write(p []byte) (n int, err error) {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
 
 	// Check if rotation is needed
 	if fw.shouldRotate(int64(len(p))) {
-		if err := fw.rotate(); err != nil {
-			return 0, err
+		if rotateErr := fw.rotate(); rotateErr != nil {
+			return 0, rotateErr
 		}
 	}
 
@@ -70,7 +70,7 @@ func (fw *FileWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-// Close closes the file writer
+// Close closes the file writer.
 func (fw *FileWriter) Close() error {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
@@ -81,7 +81,7 @@ func (fw *FileWriter) Close() error {
 	return nil
 }
 
-// openFile opens the log file for writing
+// openFile opens the log file for writing.
 func (fw *FileWriter) openFile() error {
 	// Get file info to check current size
 	info, err := os.Stat(fw.path)
@@ -94,7 +94,7 @@ func (fw *FileWriter) openFile() error {
 	}
 
 	// Open file in append mode
-	file, err := os.OpenFile(fw.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(fw.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -110,7 +110,7 @@ func (fw *FileWriter) openFile() error {
 	return nil
 }
 
-// shouldRotate checks if rotation is needed
+// shouldRotate checks if rotation is needed.
 func (fw *FileWriter) shouldRotate(writeSize int64) bool {
 	if fw.maxSize <= 0 {
 		return false
@@ -118,7 +118,7 @@ func (fw *FileWriter) shouldRotate(writeSize int64) bool {
 	return fw.currentSize+writeSize > fw.maxSize
 }
 
-// rotate performs log rotation
+// rotate performs log rotation.
 func (fw *FileWriter) rotate() error {
 	// Close current file
 	if fw.file != nil {
@@ -150,14 +150,14 @@ func (fw *FileWriter) rotate() error {
 	return nil
 }
 
-// compressFile compresses a log file using gzip
+// compressFile compresses a log file using gzip.
 func (fw *FileWriter) compressFile(path string) {
 	// This is a placeholder - actual compression would use compress/gzip
 	// For now, we'll just rename to indicate it should be compressed
 	// In a production implementation, you'd use gzip to actually compress the file
 }
 
-// cleanupOldFiles removes old log files based on maxBackups and maxAge
+// cleanupOldFiles removes old log files based on maxBackups and maxAge.
 func (fw *FileWriter) cleanupOldFiles() {
 	ticker := time.NewTicker(24 * time.Hour)
 	defer ticker.Stop()
@@ -171,7 +171,7 @@ func (fw *FileWriter) cleanupOldFiles() {
 	}
 }
 
-// performCleanup performs the actual cleanup
+// performCleanup performs the actual cleanup.
 func (fw *FileWriter) performCleanup() {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
@@ -203,7 +203,7 @@ func (fw *FileWriter) performCleanup() {
 				continue
 			}
 			if info.ModTime().Before(cutoff) {
-				os.Remove(backup) // Ignore errors
+				_ = os.Remove(backup) // Best effort cleanup
 			}
 		}
 	}
@@ -214,22 +214,22 @@ func (fw *FileWriter) performCleanup() {
 		// This is simplified - in production you'd sort properly
 		excess := len(backups) - fw.maxBackups
 		for i := 0; i < excess && i < len(backups); i++ {
-			os.Remove(backups[i]) // Ignore errors
+			_ = os.Remove(backups[i]) // Best effort cleanup
 		}
 	}
 }
 
-// MultiWriter combines multiple writers
+// MultiWriter combines multiple writers.
 type MultiWriter struct {
 	writers []io.Writer
 }
 
-// NewMultiWriter creates a writer that duplicates writes to all provided writers
+// NewMultiWriter creates a writer that duplicates writes to all provided writers.
 func NewMultiWriter(writers ...io.Writer) *MultiWriter {
 	return &MultiWriter{writers: writers}
 }
 
-// Write writes to all writers
+// Write writes to all writers.
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	for _, w := range mw.writers {
 		n, err = w.Write(p)

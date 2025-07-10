@@ -21,7 +21,10 @@ func TestMiddleware(t *testing.T) {
 		Version: "test",
 		Prefix:  "[TEST] ",
 	}
-	logger := logging.NewLoggerFromConfig(cfg)
+	logger, closer := logging.NewLoggerFromConfig(cfg)
+	if closer != nil {
+		defer closer.Close()
+	}
 	metricsCollector := metrics.NewCollector()
 
 	t.Run("WrapTool", func(t *testing.T) {
