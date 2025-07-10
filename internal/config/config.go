@@ -44,6 +44,16 @@ type ServerConfig struct {
 type LoggingConfig struct {
 	Level  string `json:"level"`
 	Prefix string `json:"prefix"`
+
+	// File logging configuration
+	File struct {
+		Enabled    bool   `json:"enabled"`    // Whether to enable file logging
+		Path       string `json:"path"`       // Path to log file
+		MaxSize    int    `json:"maxSize"`    // Maximum size in megabytes before rotation
+		MaxBackups int    `json:"maxBackups"` // Maximum number of old log files to retain
+		MaxAge     int    `json:"maxAge"`     // Maximum number of days to retain old log files
+		Compress   bool   `json:"compress"`   // Whether to compress rotated files
+	} `json:"file"`
 }
 
 type RateLimitConfig struct {
@@ -77,6 +87,21 @@ func Load(configPath string) (*Config, error) {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Prefix: "[katago-mcp] ",
+			File: struct {
+				Enabled    bool   `json:"enabled"`
+				Path       string `json:"path"`
+				MaxSize    int    `json:"maxSize"`
+				MaxBackups int    `json:"maxBackups"`
+				MaxAge     int    `json:"maxAge"`
+				Compress   bool   `json:"compress"`
+			}{
+				Enabled:    false,
+				Path:       "katago-mcp.log",
+				MaxSize:    100, // 100MB
+				MaxBackups: 3,
+				MaxAge:     30, // 30 days
+				Compress:   true,
+			},
 		},
 		RateLimit: RateLimitConfig{
 			Enabled:        true,
@@ -130,6 +155,12 @@ func (c *Config) applyEnvOverrides() {
 	// Logging settings
 	if v := os.Getenv("KATAGO_MCP_LOG_LEVEL"); v != "" {
 		c.Logging.Level = v
+	}
+	if v := os.Getenv("KATAGO_MCP_LOG_FILE_ENABLED"); v != "" {
+		c.Logging.File.Enabled = strings.EqualFold(v, "true")
+	}
+	if v := os.Getenv("KATAGO_MCP_LOG_FILE_PATH"); v != "" {
+		c.Logging.File.Path = v
 	}
 
 	// Rate limit settings

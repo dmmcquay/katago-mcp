@@ -2,6 +2,7 @@ package logging
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -22,13 +23,19 @@ type Logger struct {
 	level    Level
 	mu       sync.RWMutex
 	reqIDKey string
+	writer   io.Writer // The underlying writer (can be MultiWriter)
 }
 
 func NewLogger(prefix, level string) *Logger {
+	return NewLoggerWithWriter(os.Stderr, prefix, level)
+}
+
+func NewLoggerWithWriter(w io.Writer, prefix, level string) *Logger {
 	l := &Logger{
-		logger:   log.New(os.Stderr, prefix, log.LstdFlags|log.Lmicroseconds),
+		logger:   log.New(w, prefix, log.LstdFlags|log.Lmicroseconds),
 		level:    parseLevel(level),
 		reqIDKey: "request_id",
+		writer:   w,
 	}
 	return l
 }
@@ -91,10 +98,15 @@ func (l *Logger) Error(format string, v ...interface{}) {
 }
 
 func (l *Logger) WithRequestID(reqID string) *Logger {
+	writer := l.writer
+	if writer == nil {
+		writer = os.Stderr
+	}
 	newLogger := &Logger{
-		logger:   log.New(os.Stderr, fmt.Sprintf("%s[%s] ", l.logger.Prefix(), reqID), log.LstdFlags|log.Lmicroseconds),
+		logger:   log.New(writer, fmt.Sprintf("%s[%s] ", l.logger.Prefix(), reqID), log.LstdFlags|log.Lmicroseconds),
 		level:    l.level,
 		reqIDKey: l.reqIDKey,
+		writer:   writer,
 	}
 	return newLogger
 }

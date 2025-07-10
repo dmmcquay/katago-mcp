@@ -19,7 +19,10 @@ func TestLimiter(t *testing.T) {
 		Version: "test",
 		Prefix:  "[TEST] ",
 	}
-	logger := logging.NewLoggerFromConfig(cfg)
+	logger, closer := logging.NewLoggerFromConfig(cfg)
+	if closer != nil {
+		defer closer.Close()
+	}
 
 	t.Run("NewLimiter", func(t *testing.T) {
 		// Disabled limiter

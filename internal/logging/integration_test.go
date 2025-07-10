@@ -131,7 +131,10 @@ func TestFactoryCreation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := NewLoggerFromConfig(tt.config)
+			logger, closer := NewLoggerFromConfig(tt.config)
+			if closer != nil {
+				defer closer.Close()
+			}
 			if logger == nil {
 				t.Fatal("Expected non-nil logger")
 			}

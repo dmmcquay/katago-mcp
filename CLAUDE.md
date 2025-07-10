@@ -128,3 +128,34 @@ Key configuration:
 - Rate limits per tool
 - Logging level
 - Health check intervals
+
+### File Logging Configuration
+
+The server supports logging to both stderr (default) and files with automatic rotation:
+
+**Environment Variables:**
+- `KATAGO_MCP_LOG_FILE_ENABLED=true` - Enable file logging
+- `KATAGO_MCP_LOG_FILE_PATH=/path/to/katago-mcp.log` - Log file path
+
+**JSON Configuration:**
+```json
+{
+  "logging": {
+    "level": "info",
+    "file": {
+      "enabled": true,
+      "path": "katago-mcp.log",
+      "maxSize": 100,      // Maximum size in MB before rotation
+      "maxBackups": 3,     // Number of old log files to keep
+      "maxAge": 30,        // Days to keep old log files
+      "compress": true     // Compress rotated files
+    }
+  }
+}
+```
+
+When file logging is enabled:
+- Logs are written to both stderr and the specified file
+- Files are automatically rotated when they exceed maxSize
+- Old log files are cleaned up based on maxBackups and maxAge
+- The file writer is properly closed on server shutdown

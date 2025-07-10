@@ -82,7 +82,10 @@ func TestSupervisor(t *testing.T) {
 		Service: "test",
 		Version: "1.0.0",
 	}
-	logger := logging.NewLoggerFromConfig(logConfig)
+	logger, closer := logging.NewLoggerFromConfig(logConfig)
+	if closer != nil {
+		defer closer.Close()
+	}
 
 	t.Run("start and stop", func(t *testing.T) {
 		cfg := &config.KataGoConfig{}

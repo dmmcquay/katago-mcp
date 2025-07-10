@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -18,6 +19,7 @@ type StructuredLogger struct {
 	version    string
 	mu         sync.RWMutex
 	encoder    *json.Encoder
+	writer     io.Writer // The underlying writer (can be MultiWriter)
 	fields     map[string]interface{}
 	timeFormat string
 }
@@ -37,11 +39,17 @@ type LogEntry struct {
 
 // NewStructuredLogger creates a new structured logger.
 func NewStructuredLogger(service, version, level string) *StructuredLogger {
+	return NewStructuredLoggerWithWriter(os.Stderr, service, version, level)
+}
+
+// NewStructuredLoggerWithWriter creates a new structured logger with a custom writer.
+func NewStructuredLoggerWithWriter(w io.Writer, service, version, level string) *StructuredLogger {
 	return &StructuredLogger{
 		level:      parseLevel(level),
 		service:    service,
 		version:    version,
-		encoder:    json.NewEncoder(os.Stderr),
+		encoder:    json.NewEncoder(w),
+		writer:     w,
 		fields:     make(map[string]interface{}),
 		timeFormat: time.RFC3339Nano,
 	}
@@ -53,7 +61,8 @@ func (l *StructuredLogger) WithContext(ctx context.Context) ContextLogger {
 		level:      l.level,
 		service:    l.service,
 		version:    l.version,
-		encoder:    l.encoder,
+		encoder:    json.NewEncoder(l.writer),
+		writer:     l.writer,
 		fields:     make(map[string]interface{}),
 		timeFormat: l.timeFormat,
 	}
@@ -82,7 +91,8 @@ func (l *StructuredLogger) WithFields(fields map[string]interface{}) ContextLogg
 		level:      l.level,
 		service:    l.service,
 		version:    l.version,
-		encoder:    l.encoder,
+		encoder:    json.NewEncoder(l.writer),
+		writer:     l.writer,
 		fields:     make(map[string]interface{}),
 		timeFormat: l.timeFormat,
 	}
