@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dmmcquay/katago-mcp/internal/cache"
@@ -96,11 +97,29 @@ func main() {
 		logger.Info("Found config: %s", detection.ConfigPath)
 	}
 
-	// Report any non-critical errors
+	// Report any non-critical errors (but suppress config warnings if we have one in config.json)
 	if len(detection.Errors) > 0 {
-		logger.Warn("Detection warnings:")
+		hasConfigWarning := false
+		filteredErrors := []string{}
+
 		for _, err := range detection.Errors {
-			logger.Warn("  %s", err)
+			if strings.Contains(err, "Config: no config found") && cfg.KataGo.ConfigPath != "" {
+				hasConfigWarning = true
+				continue // Skip this warning since we have a config in config.json
+			}
+			filteredErrors = append(filteredErrors, err)
+		}
+
+		if len(filteredErrors) > 0 {
+			logger.Warn("Detection warnings:")
+			for _, err := range filteredErrors {
+				logger.Warn("  %s", err)
+			}
+		}
+
+		// Log that we're using config from config.json instead
+		if hasConfigWarning {
+			logger.Info("Using config path from config.json: %s", cfg.KataGo.ConfigPath)
 		}
 	}
 
@@ -125,6 +144,41 @@ func main() {
 	if cfg.KataGo.ConfigPath == "" {
 		cfg.KataGo.ConfigPath = detection.ConfigPath
 	}
+
+	// Log the final configuration being used
+	logger.Info("Using configuration:",
+		"server", map[string]interface{}{
+			"name":        cfg.Server.Name,
+			"version":     cfg.Server.Version,
+			"description": cfg.Server.Description,
+			"healthAddr":  cfg.Server.HealthAddr,
+		},
+		"katago", map[string]interface{}{
+			"binaryPath": cfg.KataGo.BinaryPath,
+			"modelPath":  cfg.KataGo.ModelPath,
+			"configPath": cfg.KataGo.ConfigPath,
+			"numThreads": cfg.KataGo.NumThreads,
+			"maxVisits":  cfg.KataGo.MaxVisits,
+			"maxTime":    cfg.KataGo.MaxTime,
+		},
+		"logging", map[string]interface{}{
+			"level":       cfg.Logging.Level,
+			"fileEnabled": cfg.Logging.File.Enabled,
+			"filePath":    cfg.Logging.File.Path,
+		},
+		"cache", map[string]interface{}{
+			"enabled":      cfg.Cache.Enabled,
+			"maxItems":     cfg.Cache.MaxItems,
+			"maxSizeBytes": cfg.Cache.MaxSizeBytes,
+			"ttlSeconds":   cfg.Cache.TTLSeconds,
+		},
+		"rateLimit", map[string]interface{}{
+			"enabled":        cfg.RateLimit.Enabled,
+			"requestsPerMin": cfg.RateLimit.RequestsPerMin,
+			"burstSize":      cfg.RateLimit.BurstSize,
+			"perToolLimits":  cfg.RateLimit.PerToolLimits,
+		},
+	)
 
 	// Create cache manager
 	cacheManager := cache.NewManager(&cfg.Cache, logger)
