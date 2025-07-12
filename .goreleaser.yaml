@@ -1,0 +1,125 @@
+# GoReleaser configuration for katago-mcp
+# Make sure to check the documentation at https://goreleaser.com
+
+project_name: katago-mcp
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: katago-mcp
+    main: ./cmd/katago-mcp
+    binary: katago-mcp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+      - -X main.builtBy=goreleaser
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: default
+    name_template: '{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - config/examples/*
+      - docs/*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: dmmcquay
+    name: katago-mcp
+  
+  header: |
+    ## KataGo MCP Server v{{ .Version }}
+    
+    An MCP server that provides KataGo analysis capabilities to AI assistants.
+    
+    ### Installation
+    
+    Download the appropriate archive for your platform and extract:
+    
+    ```bash
+    # macOS/Linux
+    tar xzf katago-mcp-{{ .Os }}-{{ .Arch }}.tar.gz
+    sudo mv katago-mcp /usr/local/bin/
+    
+    # Windows
+    # Extract the zip file and add to your PATH
+    ```
+    
+    See the [README](https://github.com/dmmcquay/katago-mcp#installation) for detailed setup instructions.
+
+  footer: |
+    **Full Changelog**: https://github.com/dmmcquay/katago-mcp/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+nfpms:
+  - id: packages
+    package_name: katago-mcp
+    vendor: Derek McQuay
+    homepage: https://github.com/dmmcquay/katago-mcp
+    maintainer: Derek McQuay
+    description: MCP server for KataGo analysis
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    dependencies:
+      - katago
+    bindir: /usr/bin
+    contents:
+      - src: config/examples/config.example.json
+        dst: /etc/katago-mcp/config.example.json
+        type: config
+      - src: docs/*
+        dst: /usr/share/doc/katago-mcp/
+
+dockers:
+  - id: katago-mcp
+    image_templates:
+      - "ghcr.io/dmmcquay/katago-mcp:{{ .Version }}"
+      - "ghcr.io/dmmcquay/katago-mcp:latest"
+    dockerfile: docker/Dockerfile
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+
+announce:
+  skip: true

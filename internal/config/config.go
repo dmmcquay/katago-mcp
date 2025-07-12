@@ -81,7 +81,7 @@ func Load(configPath string) (*Config, error) {
 		},
 		Server: ServerConfig{
 			Name:        "katago-mcp",
-			Version:     "0.1.0",
+			Version:     "1.0.0",
 			Description: "KataGo analysis server for MCP",
 		},
 		Logging: LoggingConfig{

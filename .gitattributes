@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Go files
+*.go text eol=lf
+*.mod text eol=lf
+*.sum text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+LICENSE text eol=lf
+
+# Configuration
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+
+# Scripts
+*.sh text eol=lf
+
+# SGF files
+*.sgf text eol=lf
+
+# Binary files
+*.gz binary
+*.bin binary
+*.exe binary
