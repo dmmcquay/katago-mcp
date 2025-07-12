@@ -74,12 +74,12 @@ release:
     Download the appropriate archive for your platform and extract:
     
     ```bash
-    # macOS/Linux
-    tar xzf katago-mcp-{{ .Os }}-{{ .Arch }}.tar.gz
+    # macOS/Linux example
+    tar xzf katago-mcp-darwin-amd64.tar.gz
     sudo mv katago-mcp /usr/local/bin/
     
-    # Windows
-    # Extract the zip file and add to your PATH
+    # Windows example
+    # Extract the katago-mcp-windows-amd64.zip file and add to your PATH
     ```
     
     See the [README](https://github.com/dmmcquay/katago-mcp#installation) for detailed setup instructions.
