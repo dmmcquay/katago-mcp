@@ -108,18 +108,26 @@ nfpms:
       - src: docs/*
         dst: /usr/share/doc/katago-mcp/
 
-dockers:
-  - id: katago-mcp
-    image_templates:
-      - "ghcr.io/dmmcquay/katago-mcp:{{ .Version }}"
-      - "ghcr.io/dmmcquay/katago-mcp:latest"
-    dockerfile: docker/Dockerfile
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+# Docker builds disabled for v1.0.0 - requires katago-base image
+# dockers:
+#   - id: katago-mcp
+#     image_templates:
+#       - "ghcr.io/dmmcquay/katago-mcp:{{ .Version }}"
+#       - "ghcr.io/dmmcquay/katago-mcp:latest"
+#     dockerfile: docker/Dockerfile
+#     extra_files:
+#       - go.mod
+#       - go.sum
+#       - cmd/
+#       - internal/
+#       - config/examples/config.production.json
+#       - docker/katago-artifacts/
+#     build_flag_templates:
+#       - "--pull"
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
 
 announce:
   skip: true

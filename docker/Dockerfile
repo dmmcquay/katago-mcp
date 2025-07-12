@@ -59,7 +59,7 @@ COPY --from=builder /app/katago-mcp /usr/local/bin/katago-mcp
 RUN chmod +x /usr/local/bin/katago-mcp
 
 # Copy configuration files
-COPY config.production.json /app/config/config.json
+COPY config/examples/config.production.json /app/config/config.json
 COPY docker/katago-artifacts/test-config.cfg /app/config/analysis.cfg
 
 # Switch to non-root user
