@@ -24,7 +24,7 @@ An MCP (Model Context Protocol) server that provides KataGo analysis capabilitie
 - **evaluateTerritory** - Estimate territory ownership and calculate the final score with visual board representation
 - **explainMove** - Get detailed explanations for why a specific move is good or bad, including strategic analysis
 
-For detailed API documentation including parameters, response formats, and examples, see [API.md](API.md).
+For detailed API documentation including parameters, response formats, and examples, see [API.md](docs/API.md).
 
 ## Installation
 
@@ -59,7 +59,7 @@ cd katago-mcp
 
 1. Copy the example config:
    ```bash
-   cp config.example.json config.json
+   cp config/examples/config.example.json config.json
    ```
 
 2. Edit `config.json` to match your setup, or use environment variables:
@@ -96,6 +96,22 @@ Once configured, you can ask Claude to:
 - Find mistakes in your games
 - Evaluate territory control
 - Explain why certain moves are good or bad
+
+## Project Structure
+
+```
+katago-mcp/
+├── cmd/katago-mcp/     # Main application entry point
+├── internal/           # Private packages
+├── config/             # Configuration files
+│   └── examples/       # Example configurations
+├── docker/             # Docker-related files
+├── docs/               # Documentation
+├── examples/           # Example files
+│   └── test-games/     # Sample SGF files for testing
+├── scripts/            # Build and utility scripts
+└── e2e/                # End-to-end tests
+```
 
 ## Development
 

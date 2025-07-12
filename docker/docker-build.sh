@@ -119,7 +119,7 @@ if [[ "$NO_CACHE" == "true" ]]; then
     DOCKER_CMD="$DOCKER_CMD --no-cache"
 fi
 
-DOCKER_CMD="$DOCKER_CMD ."
+DOCKER_CMD="$DOCKER_CMD -f docker/Dockerfile ."
 
 # Execute build
 log_info "Executing: $DOCKER_CMD"

@@ -99,11 +99,11 @@ test-base-image:
 # Docker build targets
 docker-build:
 	@echo "Building production Docker image..."
-	@./docker-build.sh --tag latest
+	@./docker/docker-build.sh --tag latest
 
 docker-build-dev:
 	@echo "Building development Docker image..."
-	@./docker-build.sh --tag dev --no-cache
+	@./docker/docker-build.sh --tag dev --no-cache
 
 docker-test:
 	@echo "Testing Docker image..."

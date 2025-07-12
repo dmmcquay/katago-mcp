@@ -54,3 +54,9 @@ docker/katago-artifacts/katago
 # Temporary files
 *.tmp
 *.temp
+*.backup
+*-backup.*
+server.log
+
+# But keep example SGF files in examples/
+!examples/**/*.sgf

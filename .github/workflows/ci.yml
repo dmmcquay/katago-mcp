@@ -218,7 +218,7 @@ jobs:
         echo "🐳 Building Docker image for E2E tests..."
         
         # Build the e2e test image (will use pre-built base)
-        docker build -f Dockerfile.e2e -t katago-mcp-e2e .
+        docker build -f docker/Dockerfile.e2e -t katago-mcp-e2e .
         
         echo "🔍 Validating Docker image..."
         ./scripts/validate-docker-image.sh

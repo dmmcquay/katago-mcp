@@ -15,7 +15,7 @@ fi
 
 # Build the Docker image
 echo "Building E2E test image..."
-docker build -f Dockerfile.e2e -t katago-mcp-e2e .
+docker build -f docker/Dockerfile.e2e -t katago-mcp-e2e .
 
 # Run the tests
 echo "Running tests..."
