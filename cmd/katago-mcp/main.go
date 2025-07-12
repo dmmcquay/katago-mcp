@@ -36,7 +36,7 @@ func main() {
 
 	// Handle version flag
 	if showVersion {
-		fmt.Printf("katago-mcp version 0.1.0\n")
+		fmt.Printf("katago-mcp version 1.0.0\n")
 		fmt.Printf("Git commit: %s\n", GitCommit)
 		fmt.Printf("Build time: %s\n", BuildTime)
 		os.Exit(0)

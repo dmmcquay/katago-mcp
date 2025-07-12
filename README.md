@@ -1,6 +1,12 @@
 # KataGo MCP Server
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io/)
+
 An MCP (Model Context Protocol) server that provides KataGo analysis capabilities to AI assistants like Claude.
+
+katago-mcp enables AI assistants to analyze Go games using the powerful KataGo engine, providing features like position analysis, game review, territory estimation, and move explanations through a simple MCP interface.
 
 ## Features
 
@@ -26,6 +32,21 @@ An MCP (Model Context Protocol) server that provides KataGo analysis capabilitie
 
 For detailed API documentation including parameters, response formats, and examples, see [API.md](docs/API.md).
 
+## Quick Start
+
+```bash
+# Install KataGo (macOS)
+brew install katago
+
+# Download and build katago-mcp
+git clone https://github.com/dmmcquay/katago-mcp.git
+cd katago-mcp
+./build.sh
+
+# Run with auto-detection
+./bin/katago-mcp
+```
+
 ## Installation
 
 ### Prerequisites
@@ -47,12 +68,24 @@ For detailed API documentation including parameters, response formats, and examp
    katago genconfig -model ~/.katago/g170-b18c384nbt-s8996141312-d4316597426.bin.gz -output ~/.katago/analysis.cfg
    ```
 
-### Building
+### Building from Source
 
 ```bash
 git clone https://github.com/dmmcquay/katago-mcp.git
 cd katago-mcp
 ./build.sh
+```
+
+The binary will be created at `./bin/katago-mcp`.
+
+### Installing from Release
+
+```bash
+# Download the latest release for your platform
+curl -L https://github.com/dmmcquay/katago-mcp/releases/latest/download/katago-mcp-$(uname -s)-$(uname -m).tar.gz | tar xz
+
+# Move to a directory in your PATH
+sudo mv katago-mcp /usr/local/bin/
 ```
 
 ### Configuration
@@ -77,25 +110,57 @@ cd katago-mcp
 
 ### Adding to Claude
 
-Add to your Claude MCP settings:
+Add to your Claude Desktop configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "katago-mcp": {
-      "command": "/path/to/katago-mcp"
+      "command": "/path/to/katago-mcp",
+      "env": {
+        "KATAGO_MCP_CONFIG": "/path/to/config.json"
+      }
     }
   }
 }
 ```
 
-## Usage
+Or with auto-detection (if KataGo is in PATH):
+
+```json
+{
+  "mcpServers": {
+    "katago-mcp": {
+      "command": "/usr/local/bin/katago-mcp"
+    }
+  }
+}
+```
+
+## Usage Examples
 
 Once configured, you can ask Claude to:
-- Analyze Go positions from SGF files
-- Find mistakes in your games
-- Evaluate territory control
-- Explain why certain moves are good or bad
+
+### Analyze a Position
+"Analyze this Go position: (;GM[1]FF[4]SZ[19];B[dd];W[pp];B[dp];W[pd])"
+
+### Review a Game
+"Find mistakes in this game and suggest better moves: [paste SGF]"
+
+### Evaluate Territory
+"Show me the territory estimate for this position: [paste SGF]"
+
+### Explain Moves
+"Why is Q16 a good move in this position? [paste SGF]"
+
+### Common Commands
+- "Start the KataGo engine" - Manually start the engine
+- "What's the engine status?" - Check if KataGo is running
+- "Stop the engine" - Stop KataGo to free resources
 
 ## Project Structure
 
@@ -178,6 +243,35 @@ The `main` branch is protected with the following rules:
 - Require branches to be up to date before merging
 - Include administrators in these restrictions
 
+## Troubleshooting
+
+### KataGo Not Found
+If you get "KataGo binary not found", ensure KataGo is installed and in your PATH:
+```bash
+which katago  # Should show the path to katago
+```
+
+### Model Not Found
+The server will auto-detect models in `~/.katago/`. If not found, download one:
+```bash
+mkdir -p ~/.katago
+cd ~/.katago
+wget https://media.katagotraining.org/g170/neuralnets/g170-b18c384nbt-s8996141312-d4316597426.bin.gz
+```
+
+### Permission Denied
+If you get permission errors, ensure the binary is executable:
+```bash
+chmod +x /path/to/katago-mcp
+```
+
+### Debug Logging
+Enable debug logging to troubleshoot issues:
+```bash
+export KATAGO_MCP_LOG_LEVEL=debug
+./katago-mcp
+```
+
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) file for details.
